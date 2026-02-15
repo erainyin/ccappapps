@@ -1,3 +1,4 @@
+/* 全局共用样式 - 基础重置和通用设置 */
 * {
     margin: 0;
     padding: 0;
@@ -10,6 +11,49 @@ body, html {
     overflow: hidden;
 }
 
+body {
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+    color: #333;
+}
+
+/* 全局共用样式 - 导航栏样式 */
+.navbar {
+    background: linear-gradient(135deg, #213bd1 0%, #0c66f5 100%);
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.navbar h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    font-weight: 600;
+    text-align: left;
+    color: white;
+}
+
+.navbar .back-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.navbar .back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* 全局共用样式 - 容器样式 */
 .container {
     width: 100%;
     height: 100%;
@@ -17,6 +61,15 @@ body, html {
     flex-direction: column;
 }
 
+.container.not-full-height {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    height: auto;
+    overflow: auto;
+}
+
+/* 全局共用样式 - 设置区域样式 */
 .setting-area {
     width: 100%;
     height: auto;
@@ -37,6 +90,7 @@ body, html {
     margin: 5px 0;
 }
 
+/* 全局共用样式 - 图表区域样式 */
 .chart-area {
     width: 100%;
     flex: 1;
@@ -48,11 +102,46 @@ body, html {
     height: 100%;
 }
 
+/* 全局共用样式 - 图表容器样式 */
+.chart-container {
+    margin-bottom: 40px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 40px;
+}
+
+.chart-title {
+    text-align: center;
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.chart {
+    width: 100%;
+    height: 500px;
+    background-color: #fff;
+}
+
+.chart-info {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+.chart-info p {
+    margin: 0;
+    color: rgb(140, 140, 140);
+    font-size: 14px;
+    font-weight: normal;
+}
+
+/* 全局共用样式 - 文件输入样式 */
 .file-input {
     display: none;
 }
 
-/* 文件名显示样式 */
+/* 全局共用样式 - 文件名显示样式 */
 .file-name {
     margin-left: 10px;
     font-size: 14px;
@@ -65,6 +154,7 @@ body, html {
     display: inline-block;
 }
 
+/* 全局共用样式 - 按钮样式 */
 .btn {
     padding: 5px 10px;
     background-color: #409EFF;
@@ -81,6 +171,35 @@ body, html {
     background-color: #66b1ff;
 }
 
+.btn-small {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+.download-btn {
+    background-color: #67C23A !important;
+}
+
+.download-btn:hover {
+    background-color: #529E28 !important;
+}
+
+.toggle-btn {
+    padding: 8px 16px;
+    background-color: #909399;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.toggle-btn:hover {
+    background-color: #73767a;
+}
+
+/* 全局共用样式 - 图表类型选择器样式 */
 .chart-type-selector {
     display: flex;
     align-items: center;
@@ -115,7 +234,7 @@ body, html {
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
-/* 标题设置样式 */
+/* 全局共用样式 - 标题设置样式 */
 .title-setting {
     display: flex;
     align-items: center;
@@ -163,12 +282,7 @@ body, html {
     margin-right: 3px;
 }
 
-.btn-small {
-    padding: 6px 12px;
-    font-size: 14px;
-}
-
-/* 字号选择器样式 */
+/* 全局共用样式 - 字号选择器样式 */
 .font-size-selector {
     display: flex;
     align-items: center;
@@ -203,7 +317,7 @@ body, html {
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
-/* 水印设置样式 */
+/* 全局共用样式 - 水印设置样式 */
 .watermark-selector {
     display: flex;
     align-items: center;
@@ -250,7 +364,7 @@ body, html {
     margin-right: 3px;
 }
 
-/* GIF设置样式 */
+/* 对应动画柱状图工具 - GIF设置样式 */
 .gif-settings {
     display: flex;
     align-items: center;
@@ -286,6 +400,7 @@ body, html {
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
+/* 全局共用样式 - 颜色输入样式 */
 .color-input {
     width: 60px;
     height: 34px;
@@ -296,7 +411,7 @@ body, html {
     margin-right: 15px;
 }
 
-/* 颜色配置样式 */
+/* 全局共用样式 - 颜色配置样式 */
 .color-settings {
     display: flex;
     align-items: center;
@@ -331,7 +446,7 @@ body, html {
     width: 60px;
 }
 
-/* 展开收起设置区域样式 */
+/* 全局共用样式 - 展开收起设置区域样式 */
 .advanced-settings {
     width: 100%;
     transition: all 0.3s ease;
@@ -344,6 +459,448 @@ body, html {
 }
 
 .advanced-settings:not(.collapsed) {
-    max-height: 800px; /* 增加最大高度以容纳更多设置项 */
+    max-height: 800px;
     opacity: 1;
+}
+
+/* 全局共用样式 - 图例设置样式 */
+.legend-selector {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.legend-checkbox {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.legend-checkbox input {
+    margin-right: 3px;
+}
+
+/* 对应动画柱状图工具 - 柱子宽度设置样式 */
+.bar-width-settings {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.bar-width-settings label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.bar-width-select {
+    padding: 8px 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+    background-color: #fff;
+    cursor: pointer;
+    transition: border-color 0.3s;
+    margin-right: 10px;
+}
+
+.bar-width-select:hover {
+    border-color: #c6e2ff;
+}
+
+.bar-width-select:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 对应词云工具 - 词云配置面板样式 */
+.config-panel {
+    max-width: 1200px;
+    margin: 0 auto 20px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.config-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-item label {
+    font-weight: bold;
+    color: #333;
+}
+
+.config-item select, .config-item input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.config-item button {
+    padding: 8px 16px;
+    background-color: #409EFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.config-item button:hover {
+    background-color: #337ecc;
+}
+
+/* 对应词云工具 - 多色自定义区域样式 */
+.custom-multi-color-group {
+    display: none;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.color-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.color-item input {
+    width: 50px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid #ddd;
+}
+
+/* 对应词云工具 - SVG上传区域样式 */
+.svg-upload-group {
+    display: none;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.svg-upload-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#svgFile {
+    padding: 5px;
+}
+
+#svgPreview {
+    width: 100px;
+    height: 100px;
+    border: 1px dashed #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 12px;
+}
+
+/* 对应词云工具 - 主容器布局 */
+.main-container {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 对应词云工具 - 词云容器样式 */
+.wordcloud-container {
+    flex: 1;
+    min-width: 0;
+    height: 800px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* 对应词云工具 - 右侧编辑面板 */
+.edit-panel {
+    width: 350px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 15px;
+    height: fit-content;
+    transition: all 0.3s ease;
+}
+
+/* 对应词云工具 - 编辑面板折叠状态 */
+.edit-panel.collapsed {
+    display: none;
+}
+
+/* 对应词云工具 - 确保标题文本正常显示 */
+.panel-title {
+    white-space: nowrap;
+}
+
+.edit-panel h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 对应词云工具 - 编辑控制按钮 */
+.edit-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.edit-controls button {
+    padding: 6px 12px;
+    background-color: #409EFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.edit-controls button:hover {
+    background-color: #337ecc;
+}
+
+.edit-controls button:nth-child(2) {
+    background-color: #F56C6C;
+}
+
+.edit-controls button:nth-child(2):hover {
+    background-color: #E64980;
+}
+
+.edit-controls button:nth-child(3) {
+    background-color: #67C23A;
+}
+
+.edit-controls button:nth-child(3):hover {
+    background-color: #529E28;
+}
+
+/* 对应词云工具 - 关键词表格 */
+.keyword-table-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #e4e7ed;
+    border-radius: 4px;
+}
+
+#keywordTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+#keywordTable th,
+#keywordTable td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e4e7ed;
+}
+
+#keywordTable th {
+    background-color: #f5f7fa;
+    font-weight: bold;
+    color: #303133;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#keywordTable tr:hover {
+    background-color: #f5f7fa;
+}
+
+#keywordTable input[type="text"],
+#keywordTable input[type="number"] {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+#keywordTable input[type="text"]:focus,
+#keywordTable input[type="number"]:focus {
+    outline: none;
+    border-color: #409EFF;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+#keywordTable input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* 对应词云工具 - 全选复选框 */
+#selectAll {
+    cursor: pointer;
+}
+
+/* 全局共用样式 - 提示文本 */
+.tip-text {
+    font-size: 12px;
+    color: #666;
+    margin-left: 5px;
+}
+
+/* 对应首页工具集页面 - 首页样式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    margin: 0 auto;
+    height: auto;
+    overflow: auto;
+}
+
+.tools-grid {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.tool-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.tool-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.tool-image {
+    height: 200px;
+    overflow: hidden;
+    background: #f0f2f5;
+    position: relative;
+}
+
+.tool-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.tool-card:hover .tool-image::before {
+    opacity: 0;
+}
+
+.tool-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: all 0.3s ease;
+    filter: blur(10px);
+}
+
+.tool-card:hover .tool-image img {
+    transform: scale(1.05);
+    filter: blur(0);
+}
+
+.tool-card:hover .tool-title {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+.tool-title {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 1.3rem;
+    font-weight: 600;
+    text-align: center;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.tool-content {
+    padding: 20px;
+}
+
+.tool-content p {
+    color: #7f8c8d;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+footer {
+    text-align: center;
+    margin-top: 60px;
+    padding: 30px 0;
+    color: #95a5a6;
+    font-size: 0.9rem;
+}
+
+/* 对应首页工具集页面 - 响应式样式 */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    header p {
+        font-size: 1rem;
+    }
+    
+    .tools-grid {
+        grid-template-columns: 1fr;
+    }
 }
