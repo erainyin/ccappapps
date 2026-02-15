@@ -6,11 +6,11 @@ const monthLabels = ['全年', '1月', '2月', '3月', '4月', '5月', '6月', '
 
 // CSV文件列表
 const csvFiles = [
-    { id: 'pm25', file: '/data/pm25-block.csv' },
-    { id: 'csj', file: '/data/25-csj.csv' },
-    { id: 'cy', file: '/data/25-cy.csv' },
-    { id: 'fw', file: '/data/25-fw.csv' },
-    { id: 'jjj', file: '/data/25-jjj.csv' }
+    { id: 'pm25', file: '../data/pm25-block.csv' },
+    { id: 'csj', file: '../data/25-csj.csv' },
+    { id: 'cy', file: '../data/25-cy.csv' },
+    { id: 'fw', file: '../data/25-fw.csv' },
+    { id: 'jjj', file: '../data/25-jjj.csv' }
 ];
 
 // 图表实例存储
