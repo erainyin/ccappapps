@@ -1,0 +1,349 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.setting-area {
+    width: 100%;
+    height: auto;
+    background-color: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding: 10px 20px;
+    border-bottom: 1px solid #ccc;
+}
+
+.setting-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 5px 0;
+}
+
+.chart-area {
+    width: 100%;
+    flex: 1;
+    background-color: #fff;
+}
+
+#chart {
+    width: 100%;
+    height: 100%;
+}
+
+.file-input {
+    display: none;
+}
+
+/* 文件名显示样式 */
+.file-name {
+    margin-left: 10px;
+    font-size: 14px;
+    color: #666;
+    background-color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #dcdfe6;
+    min-width: 200px;
+    display: inline-block;
+}
+
+.btn {
+    padding: 5px 10px;
+    background-color: #409EFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    margin: 0 5px;
+}
+
+.btn:hover {
+    background-color: #66b1ff;
+}
+
+.chart-type-selector {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.chart-type-selector label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.chart-type-select {
+    padding: 8px 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+    background-color: #fff;
+    cursor: pointer;
+    transition: border-color 0.3s;
+    margin-right: 10px;
+}
+
+.chart-type-select:hover {
+    border-color: #c6e2ff;
+}
+
+.chart-type-select:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 标题设置样式 */
+.title-setting {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+.title-setting label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.title-input {
+    padding: 8px 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+    background-color: #fff;
+    transition: border-color 0.3s;
+    margin-right: 10px;
+    width: 200px;
+}
+
+.title-input:hover {
+    border-color: #c6e2ff;
+}
+
+.title-input:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.title-checkbox {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.title-checkbox input {
+    margin-right: 3px;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+/* 字号选择器样式 */
+.font-size-selector {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.font-size-selector label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.font-size-select {
+    padding: 8px 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+    background-color: #fff;
+    cursor: pointer;
+    transition: border-color 0.3s;
+    min-width: 80px;
+}
+
+.font-size-select:hover {
+    border-color: #c6e2ff;
+}
+
+.font-size-select:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 水印设置样式 */
+.watermark-selector {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.watermark-selector label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.watermark-input {
+    padding: 8px 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+    background-color: #fff;
+    transition: border-color 0.3s;
+    width: 120px;
+    margin-right: 10px;
+}
+
+.watermark-input:hover {
+    border-color: #c6e2ff;
+}
+
+.watermark-input:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.watermark-checkbox {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.watermark-checkbox input {
+    margin-right: 3px;
+}
+
+/* GIF设置样式 */
+.gif-settings {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.gif-settings label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.gif-input {
+    padding: 8px 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+    background-color: #fff;
+    transition: border-color 0.3s;
+    width: 120px;
+    margin-right: 15px;
+}
+
+.gif-input:hover {
+    border-color: #c6e2ff;
+}
+
+.gif-input:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.color-input {
+    width: 60px;
+    height: 34px;
+    padding: 2px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 15px;
+}
+
+/* 颜色配置样式 */
+.color-settings {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.color-settings label {
+    margin-right: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+.color-inputs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-right: 15px;
+}
+
+.color-input-wrapper {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+    margin-bottom: 5px;
+}
+
+.color-label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #666;
+    width: 60px;
+}
+
+/* 展开收起设置区域样式 */
+.advanced-settings {
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.advanced-settings.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.advanced-settings:not(.collapsed) {
+    max-height: 800px; /* 增加最大高度以容纳更多设置项 */
+    opacity: 1;
+}
