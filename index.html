@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环境数据可视化工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .tool-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .tool-image {
+            height: 200px;
+            overflow: hidden;
+            background: #f0f2f5;
+        }
+        
+        .tool-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .tool-card:hover .tool-image img {
+            transform: scale(1.05);
+        }
+        
+        .tool-content {
+            padding: 20px;
+        }
+        
+        .tool-content h2 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .tool-content p {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        
+        .use-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .use-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 30px 0;
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            header p {
+                font-size: 1rem;
+            }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>环境数据可视化工具</h1>
+            <p>提供多种环境数据的交互式可视化分析工具</p>
+        </header>
+        
+        <div class="tools-grid">
+            <!-- 25trends.html -->
+            <div class="tool-card">
+                <div class="tool-image">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=environmental%20data%20trends%20visualization%20chart%20with%20multiple%20years%20data&image_size=landscape_4_3" alt="2025趋势分析">
+                </div>
+                <div class="tool-content">
+                    <h2>2025趋势分析</h2>
+                    <p>展示2025年的环境数据趋势，包含多个时间段和区域的对比分析，帮助您了解环境质量的变化趋势。</p>
+                    <a href="25trends.html" class="use-button">使用工具</a>
+                </div>
+            </div>
+            
+            <!-- annimatebar.html -->
+            <div class="tool-card">
+                <div class="tool-image">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=animated%20bar%20chart%20showing%20environmental%20data%20with%20interactive%20features&image_size=landscape_4_3" alt="动画柱状图">
+                </div>
+                <div class="tool-content">
+                    <h2>动画柱状图</h2>
+                    <p>带有动画效果的柱状图工具，支持自定义柱子宽度、图例显示和X轴文字角度，直观展示环境数据的对比。</p>
+                    <a href="annimatebar.html" class="use-button">使用工具</a>
+                </div>
+            </div>
+            
+            <!-- o3bubble.html -->
+            <div class="tool-card">
+                <div class="tool-image">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ozone%20concentration%20bubble%20chart%20with%20different%20regions%20data&image_size=landscape_4_3" alt="臭氧浓度气泡图">
+                </div>
+                <div class="tool-content">
+                    <h2>臭氧浓度气泡图</h2>
+                    <p>以气泡图形式展示不同区域的臭氧浓度数据，通过气泡大小和颜色直观反映臭氧浓度的分布情况。</p>
+                    <a href="o3bubble.html" class="use-button">使用工具</a>
+                </div>
+            </div>
+            
+            <!-- o3trends.html -->
+            <div class="tool-card">
+                <div class="tool-image">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ozone%20concentration%20trends%20chart%20with%20monthly%20data&image_size=landscape_4_3" alt="臭氧浓度趋势图">
+                </div>
+                <div class="tool-content">
+                    <h2>臭氧浓度趋势图</h2>
+                    <p>展示臭氧浓度的月度趋势变化，包含多个区域的对比分析，帮助您了解臭氧污染的时间分布特征。</p>
+                    <a href="o3trends.html" class="use-button">使用工具</a>
+                </div>
+            </div>
+            
+            <!-- pm25bubble.html -->
+            <div class="tool-card">
+                <div class="tool-image">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=PM2.5%20concentration%20bubble%20chart%20with%20color%20coding%20for%20different%20levels&image_size=landscape_4_3" alt="PM2.5浓度气泡图">
+                </div>
+                <div class="tool-content">
+                    <h2>PM2.5浓度气泡图</h2>
+                    <p>以气泡图形式展示不同区域的PM2.5浓度数据，通过颜色编码直观反映污染程度，支持数据精度保持。</p>
+                    <a href="pm25bubble.html" class="use-button">使用工具</a>
+                </div>
+            </div>
+            
+            <!-- pm25trends.html -->
+            <div class="tool-card">
+                <div class="tool-image">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=PM2.5%20concentration%20heatmap%20with%20monthly%20data%20for%20different%20regions&image_size=landscape_4_3" alt="PM2.5浓度趋势图">
+                </div>
+                <div class="tool-content">
+                    <h2>PM2.5浓度趋势图</h2>
+                    <p>以热力图形式展示PM2.5浓度的月度变化趋势，包含多个区域的对比分析，支持自定义颜色分段。</p>
+                    <a href="pm25trends.html" class="use-button">使用工具</a>
+                </div>
+            </div>
+            
+            <!-- textcloud.html -->
+            <div class="tool-card">
+                <div class="tool-image">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=word%20cloud%20visualization%20of%20environmental%20keywords%20with%20different%20sizes&image_size=landscape_4_3" alt="关键词云图">
+                </div>
+                <div class="tool-content">
+                    <h2>关键词云图</h2>
+                    <p>将环境相关关键词以词云形式展示，支持从CSV文件导入数据，可自定义关键词和权重，直观呈现重点关注领域。</p>
+                    <a href="textcloud.html" class="use-button">使用工具</a>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2026 环境数据可视化工具 | 所有权利保留</p>
+        </footer>
+    </div>
+</body>
+</html>
