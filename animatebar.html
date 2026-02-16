@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSV柱状图展示</title>
-    <script src="./js/echarts.min.js"></script>
-    <script src="./js/html2canvas.js"></script>
-    <script src="./js/gif.min.js"></script>
-    <script src="./js/jszip.min.js"></script>
+    <script src="http://localhost:8080/js/echarts.min.js"></script>
+    <script src="http://localhost:8080/js/html2canvas.js"></script>
+    <script src="http://localhost:8080/js/gif.min.js"></script>
+    <script src="http://localhost:8080/js/jszip.min.js"></script>
     <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
         <h1>动画柱状图</h1>
         <button class="back-btn" onclick="window.location.href='index.html'">返回工具集</button>
     </div>
-    <div class="container">
+    <div class="animatebar-container">
         <div class="setting-area">
             <!-- 第一行：选择CSV文件按钮 -->
             <div class="setting-row">
@@ -210,6 +210,18 @@
                         <button id="applyBarWidthBtn" class="btn btn-small">应用柱子宽度</button>
                     </div>
                 </div>
+                
+                <!-- 新增行：图表尺寸设置 -->
+                <div class="setting-row">
+                    <!-- 图表宽度设置 -->
+                    <div class="chart-size-settings">
+                        <label for="chartWidth">图表宽度：</label>
+                        <input type="number" id="chartWidth" class="chart-size-input" value="1200" min="400" max="2000">
+                        <label for="chartHeight">图表高度：</label>
+                        <input type="number" id="chartHeight" class="chart-size-input" value="400" min="400" max="1500">
+                        <button id="applySizeBtn" class="btn btn-small">应用尺寸</button>
+                    </div>
+                </div>
             </div>
             
             <!-- 第三行：播放动画、暂停动画、重新播放、导出GIF按钮 -->
@@ -221,9 +233,7 @@
                 <button id="exportPngBtn" class="btn">导出PNG序列</button>
             </div>
         </div>
-        <div class="chart-area">
-            <div id="chart"></div>
-        </div>
+        <div id="chart"></div>
     </div>
 
     <script src="./js/animatebar.js"></script>

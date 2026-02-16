@@ -24,9 +24,74 @@ let customColors = [
 
 // 确保DOM和ECharts库加载完成后初始化
 window.addEventListener('load', function() {
+    console.log('DOM加载完成，开始初始化图表');
     if (typeof echarts !== 'undefined') {
+        console.log('ECharts库已加载');
         // 初始化ECharts实例
-        chart = echarts.init(document.getElementById('chart'));
+        const chartElement = document.getElementById('chart');
+        console.log('图表元素:', chartElement);
+        console.log('图表元素尺寸:', { width: chartElement.offsetWidth, height: chartElement.offsetHeight });
+        
+        // 检查父容器尺寸
+        const animatebarContainer = document.querySelector('.animatebar-container');
+        console.log('animatebar-container元素:', animatebarContainer);
+        console.log('animatebar-container尺寸:', { width: animatebarContainer.offsetWidth, height: animatebarContainer.offsetHeight });
+        
+        // 设置默认图表尺寸
+        const defaultWidth = 1200;
+        const defaultHeight = 400;
+        
+        // 强制设置图表元素的样式，确保尺寸不会被其他因素影响
+        chartElement.style.width = defaultWidth + 'px';
+        chartElement.style.height = defaultHeight + 'px';
+        chartElement.style.flex = 'none';
+        chartElement.style.display = 'block';
+        chartElement.style.margin = '20px auto';
+        
+        console.log('设置默认图表尺寸:', { width: defaultWidth, height: defaultHeight });
+        console.log('设置后图表元素样式:', {
+            width: chartElement.style.width,
+            height: chartElement.style.height,
+            flex: chartElement.style.flex,
+            display: chartElement.style.display,
+            margin: chartElement.style.margin
+        });
+        
+        // 强制重排
+        chartElement.offsetHeight;
+        
+        console.log('重排后图表元素offset尺寸:', {
+            width: chartElement.offsetWidth,
+            height: chartElement.offsetHeight
+        });
+        
+        // 初始化图表实例
+        chart = echarts.init(chartElement);
+        console.log('ECharts实例初始化成功:', chart);
+        
+        // 初始化后再次检查图表尺寸
+        setTimeout(() => {
+            console.log('初始化后图表元素尺寸:', { width: chartElement.offsetWidth, height: chartElement.offsetHeight });
+            
+            // 检查canvas元素的尺寸
+            const canvasElement = chartElement.querySelector('canvas');
+            if (canvasElement) {
+                console.log('Canvas元素样式:', {
+                    width: canvasElement.style.width,
+                    height: canvasElement.style.height
+                });
+                console.log('Canvas元素属性:', {
+                    width: canvasElement.width,
+                    height: canvasElement.height
+                });
+            }
+            
+            // 再次强制设置图表尺寸，确保不会被覆盖
+            chartElement.style.width = defaultWidth + 'px';
+            chartElement.style.height = defaultHeight + 'px';
+            chart.resize();
+            console.log('再次设置后图表元素尺寸:', { width: chartElement.offsetWidth, height: chartElement.offsetHeight });
+        }, 100);
         
         // 初始化颜色输入框
         initColorInputs();
@@ -85,32 +150,34 @@ window.addEventListener('load', function() {
                 nameRotate: 90
             },
             series: [{
-            name: '',
-            type: currentChartType === 'stackedBar' ? 'bar' : currentChartType,
-            stack: currentChartType === 'stackedBar' ? 'total' : undefined,
-            data: [],
-            itemStyle: {
-                color: '#188df0'
-            },
-            label: {
-                show: true,
-                position: currentChartType === 'bar' || currentChartType === 'stackedBar' ? 'top' : 'top',
-                formatter: '{c}',
-                fontSize: 12,
-                color: '#333'
-            },
-            // 折线图特有配置
-            lineStyle: {
-                width: 3
-            },
-            symbol: 'circle',
-            symbolSize: 8
-        }]
+                name: '',
+                type: currentChartType === 'stackedBar' ? 'bar' : currentChartType,
+                stack: currentChartType === 'stackedBar' ? 'total' : undefined,
+                data: [],
+                itemStyle: {
+                    color: '#188df0'
+                },
+                label: {
+                    show: true,
+                    position: currentChartType === 'bar' || currentChartType === 'stackedBar' ? 'top' : 'top',
+                    formatter: '{c}',
+                    fontSize: 12,
+                    color: '#333'
+                },
+                // 折线图特有配置
+                lineStyle: {
+                    width: 3
+                },
+                symbol: 'circle',
+                symbolSize: 8
+            }]
         };
         
         chart.setOption(initialOption);
+        console.log('初始图表配置已设置');
         
         // 页面初始化时加载data.csv文件
+        console.log('开始加载data.csv文件');
         loadCSVFile('./data/data.csv');
         
         // 添加播放和暂停按钮事件监听
@@ -160,6 +227,10 @@ window.addEventListener('load', function() {
         // 添加图例设置事件监听
         const applyLegendBtn = document.getElementById('applyLegendBtn');
         applyLegendBtn.addEventListener('click', updateLegend);
+        
+        // 添加图表尺寸设置事件监听
+        const applySizeBtn = document.getElementById('applySizeBtn');
+        applySizeBtn.addEventListener('click', updateChartSize);
         
         // 初始设置标题输入框值
         document.getElementById('chartTitle').value = 'CSV数据图表';
@@ -265,6 +336,13 @@ function renderChart(parsedData) {
         return;
     }
     
+    // 检查渲染前的图表尺寸
+    const chartElement = document.getElementById('chart');
+    console.log('渲染前图表元素尺寸:', {
+        width: chartElement.offsetWidth,
+        height: chartElement.offsetHeight
+    });
+    
     const { headers, data } = parsedData;
     if (headers.length < 1) {
         alert('CSV文件至少需要包含一列数据');
@@ -316,13 +394,13 @@ function renderChart(parsedData) {
                 stack: 'total',
                 data: initialValues,
                 itemStyle: {
-                color: colors[(i - startColumn) % colors.length]
-            },
-            emphasis: {
-                itemStyle: {
                     color: colors[(i - startColumn) % colors.length]
-                }
-            },
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: colors[(i - startColumn) % colors.length]
+                    }
+                },
                 label: {
                     show: i === headers.length - 1, // 只在最后一个系列显示标签
                     position: 'top',
@@ -353,13 +431,13 @@ function renderChart(parsedData) {
                 type: currentChartType,
                 data: initialValues,
                 itemStyle: {
-                color: colors[(i - startColumn) % colors.length]
-            },
-            emphasis: {
-                itemStyle: {
                     color: colors[(i - startColumn) % colors.length]
-                }
-            },
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: colors[(i - startColumn) % colors.length]
+                    }
+                },
                 label: {
                     show: true,
                     position: currentChartType === 'bar' ? 'top' : 'top',
@@ -462,6 +540,23 @@ function renderChart(parsedData) {
     
     // 自动开始动画
     playAnimation();
+    
+    // 检查渲染后的图表尺寸
+    console.log('渲染后图表元素尺寸:', {
+        width: chartElement.offsetWidth,
+        height: chartElement.offsetHeight
+    });
+    
+    // 确保图表使用用户设置的尺寸
+    const chartWidth = parseInt(document.getElementById('chartWidth').value);
+    const chartHeight = parseInt(document.getElementById('chartHeight').value);
+    chartElement.style.width = chartWidth + 'px';
+    chartElement.style.height = chartHeight + 'px';
+    chart.resize();
+    console.log('确保后图表元素尺寸:', {
+        width: chartElement.offsetWidth,
+        height: chartElement.offsetHeight
+    });
 }
 
 // 更新图表标题函数
@@ -583,6 +678,81 @@ function updateLegend() {
     });
 }
 
+// 更新图表尺寸函数
+function updateChartSize() {
+    if (typeof echarts === 'undefined' || !chart) {
+        console.error('ECharts库未加载或图表实例未初始化');
+        return;
+    }
+    
+    const chartWidth = parseInt(document.getElementById('chartWidth').value);
+    const chartHeight = parseInt(document.getElementById('chartHeight').value);
+    
+    console.log('开始更新图表尺寸:', { width: chartWidth, height: chartHeight });
+    
+    // 更新图表元素的尺寸
+    const chartElement = document.getElementById('chart');
+    if (!chartElement) {
+        console.error('图表元素未找到');
+        return;
+    }
+    
+    console.log('更新前图表元素样式:', {
+        width: chartElement.style.width,
+        height: chartElement.style.height
+    });
+    
+    // 移除flex属性，确保尺寸设置生效
+    chartElement.style.flex = 'none';
+    // 直接设置样式属性
+    chartElement.style.width = chartWidth + 'px';
+    chartElement.style.height = chartHeight + 'px';
+    chartElement.style.display = 'block';
+    
+    console.log('更新后图表元素样式:', {
+        width: chartElement.style.width,
+        height: chartElement.style.height,
+        flex: chartElement.style.flex,
+        display: chartElement.style.display
+    });
+    
+    // 强制重排
+    chartElement.offsetHeight;
+    
+    console.log('更新后图表元素offset尺寸:', {
+        width: chartElement.offsetWidth,
+        height: chartElement.offsetHeight
+    });
+    
+    // 销毁旧的图表实例并重新初始化
+    try {
+        chart.dispose();
+        console.log('图表实例已销毁');
+    } catch (error) {
+        console.error('销毁图表实例时出错:', error);
+    }
+    
+    try {
+        chart = echarts.init(chartElement);
+        console.log('图表实例已重新初始化');
+    } catch (error) {
+        console.error('初始化图表实例时出错:', error);
+        return;
+    }
+    
+    // 重新设置图表配置
+    if (chartData.values.length > 0) {
+        try {
+            renderChart({ headers: chartData.headers, data: chartData.values });
+            console.log('图表配置已重新应用');
+        } catch (error) {
+            console.error('重新应用图表配置时出错:', error);
+        }
+    }
+    
+    console.log('图表尺寸已更新:', { width: chartWidth, height: chartHeight });
+}
+
 // 播放动画函数
 function playAnimation() {
     if (isAnimating || chartData.values.length === 0) return;
@@ -620,22 +790,22 @@ function playAnimation() {
                         data: animatedData,
                         stack: 'total',
                         label: {
-                                show: isLastSeries,
-                                position: 'top',
-                                formatter: (params) => {
-                                    // 计算当前柱子的总和
-                                    let total = 0;
-                                    for (let j = startColumn; j < chartData.headers.length; j++) {
-                                        const rowData = chartData.values[params.dataIndex];
-                                        const value = rowData && rowData[chartData.headers[j]] && params.dataIndex <= currentIndex ? rowData[chartData.headers[j]] : 0;
-                                        // 将值转换为数字进行计算
-                                        total += parseFloat(value) || 0;
-                                    }
-                                    return total;
-                                },
-                                fontSize: valueFontSize,
-                                color: '#333'
-                            }
+                            show: isLastSeries,
+                            position: 'top',
+                            formatter: (params) => {
+                                // 计算当前柱子的总和
+                                let total = 0;
+                                for (let j = startColumn; j < chartData.headers.length; j++) {
+                                    const rowData = chartData.values[params.dataIndex];
+                                    const value = rowData && rowData[chartData.headers[j]] && params.dataIndex <= currentIndex ? rowData[chartData.headers[j]] : 0;
+                                    // 将值转换为数字进行计算
+                                    total += parseFloat(value) || 0;
+                                }
+                                return total;
+                            },
+                            fontSize: valueFontSize,
+                            color: '#333'
+                        }
                     });
                 } else {
                     animatedSeries.push({
@@ -993,7 +1163,7 @@ document.getElementById('exportBtn').addEventListener('click', function() {
                     });
                 }
                 
-                                                // 延迟捕获，确保图表更新完成
+                // 延迟捕获，确保图表更新完成
                 setTimeout(() => {
                     // 使用html2canvas捕获图表，添加配置确保捕获完整区域
                     html2canvas(document.getElementById('chart'), {
