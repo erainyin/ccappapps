@@ -90,7 +90,8 @@ body {
 }
 
 /* 全局共用样式 - 设置区域样式 */
-.setting-area {
+.setting-area,
+.settings-area {
     width: 100%;
     height: auto;
     background-color: #f0f0f0;
@@ -98,8 +99,52 @@ body {
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-around;
-    padding: 10px 20px;
-    border-bottom: 1px solid #ccc;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.settings-area h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.settings-area .settings-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.settings-area .btn {
+    background: linear-gradient(135deg, #213bd1 0%, #0c66f5 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.settings-area .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(12, 102, 245, 0.3);
+}
+
+.settings-area .file-upload {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-area .file-name {
+    color: #666;
+    font-size: 0.9rem;
+    min-width: 200px;
 }
 
 .setting-row {

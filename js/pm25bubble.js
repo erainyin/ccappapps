@@ -15,6 +15,7 @@ const yearLabels = ['2025年'];
 // 从CSV文件读取数据
 let o3Data = [];
 let yAxisData = [];
+let originalCSVText = '';
 
 // 生成y轴标签
 const generateYAxisData = () => {
@@ -100,10 +101,9 @@ const calculateMinMax = (data) => {
     return { min, max };
 };
 
-// 加载CSV文件
-fetch('data/pm25-bubble.csv')
-    .then(response => response.text())
-    .then(csvText => {
+// 渲染图表
+const renderChart = (csvText) => {
+    try {
         o3Data = parseCSVData(csvText);
         yAxisData = generateYAxisData();
         
@@ -298,12 +298,88 @@ fetch('data/pm25-bubble.csv')
         
         // 渲染图表
         myChart.setOption(option);
-    })
-    .catch(error => {
-        console.error('加载CSV文件失败:', error);
-        // 如果加载失败，显示错误信息
-        chartDom.innerHTML = '<div style="text-align:center;padding-top:50px;color:#666">加载数据失败，请检查CSV文件路径</div>';
-    });
+        
+        // 保存原始CSV文本用于下载
+        originalCSVText = csvText;
+        
+        // 显示成功信息
+        chartDom.style.display = 'block';
+    } catch (error) {
+        console.error('渲染图表失败:', error);
+        // 如果渲染失败，显示错误信息
+        chartDom.innerHTML = '<div style="text-align:center;padding-top:50px;color:#666">数据格式错误，请检查CSV文件格式</div>';
+    }
+};
+
+// 加载CSV文件
+const loadCSVFile = (url) => {
+    fetch(url)
+        .then(response => response.text())
+        .then(csvText => {
+            renderChart(csvText);
+        })
+        .catch(error => {
+            console.error('加载CSV文件失败:', error);
+            // 如果加载失败，显示错误信息
+            chartDom.innerHTML = '<div style="text-align:center;padding-top:50px;color:#666">加载数据失败，请检查CSV文件路径</div>';
+        });
+};
+
+// 下载CSV文件
+const downloadCSV = () => {
+    if (!originalCSVText) {
+        alert('没有可下载的数据');
+        return;
+    }
+    
+    const blob = new Blob([originalCSVText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'pm25-bubble-data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// 初始化页面
+window.onload = function() {
+    // 加载默认CSV文件
+    loadCSVFile('data/pm25-bubble.csv');
+    
+    // 绑定下载按钮事件
+    const downloadBtn = document.getElementById('downloadCSVBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadCSV);
+    }
+    
+    // 绑定文件上传事件
+    const csvFileInput = document.getElementById('csvFile');
+    if (csvFileInput) {
+        csvFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 更新文件名显示
+                const fileNameSpan = document.getElementById('fileName');
+                if (fileNameSpan) {
+                    fileNameSpan.textContent = file.name;
+                }
+                
+                // 读取文件内容
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const csvText = e.target.result;
+                    renderChart(csvText);
+                };
+                reader.onerror = function() {
+                    alert('读取文件失败');
+                };
+                reader.readAsText(file, 'utf-8');
+            }
+        });
+    }
+};
 
 // 响应式调整
 window.addEventListener('resize', () => {

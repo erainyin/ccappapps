@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中国城市地图</title>
+  <script src="js/echarts.min.js"></script>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="navbar">
+        <h1>政策地图</h1>
+        <button class="back-btn" onclick="window.location.href='../index.html'">返回工具集</button>
+    </div>
+    <div class="controls">
+      <select id="time-dimension-select">
+        <option value="year" selected>年</option>
+        <option value="quarter">季度</option>
+        <option value="month">月</option>
+        <option value="week">周</option>
+        <option value="day">日</option>
+      </select>
+      <button id="prev-btn" disabled>时间后退</button>
+      <span class="time-display" id="time-display"></span>
+      <button id="next-btn">时间前进</button>
+      <select id="time-interval-select">
+          <option value="0" selected>不自动切换</option>
+          <option value="5">5秒</option>
+          <option value="10">10秒</option>
+          <option value="15">15秒</option>
+        </select>
+    </div>
+    <div class="main">
+    <div id="map-container">
+    </div>
+    <div class="policy-info-panel" id="policy-info-panel">
+      <h3>当前政策信息</h3>
+      <div class="policy-count" id="policy-count">共 0 条政策</div>
+      <div class="policy-info-content" id="policy-info-content">
+        <!-- 政策数据将通过JavaScript动态添加 -->
+      </div>
+      <div id="keyword-stats-container">
+        <div class="stats-toggle">
+          <label><input type="radio" name="stats-type" value="keywords" checked> 关键词</label>
+          <label><input type="radio" name="stats-type" value="regions"> 区域</label>
+          <label><input type="radio" name="stats-type" value="types"> 类型</label>
+        </div>
+        <div id="keyword-stats" style="width: 100%; height: 300px;"></div>
+      </div>
+    </div>
+    </div>
+    
+    <div class="time-progress-bar">
+      <div class="time-progress-fill" id="time-progress-fill"></div>
+    </div>
+  <script src="js/main.js"></script>
+</body>
+</html>

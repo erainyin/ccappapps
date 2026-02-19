@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>政策列表</title>
+  <script src="js/echarts.min.js"></script>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .filter-area {
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .filter-content {
+      display: flex;
+        /*横向排列;*/
+      gap: 20px;
+    }
+    .filter-section {
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+    .filter-section label {
+      margin-right: 10px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .expandable-filter .filter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .expandable-filter .filter-header:hover {
+      background-color: #f5f5f5;
+    }
+    .expandable-filter .expand-icon {
+      font-size: 16px;
+      font-weight: bold;
+      user-select: none;
+    }
+    .filter-content {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 20px;
+    }
+    .filter-subsections {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+    }
+    .filter-subsection {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    .filter-subsection label {
+      display: block;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .filter-option label {
+      font-size: 12px;
+    }
+    .filter-top {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+      position:fixed;
+      padding:5px;
+      background: #fff;
+    }
+    .filter-top .filter-search {
+      flex: 1;
+    }
+    .filter-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      height: 160px;
+      overflow-y: auto;
+      padding: 5px;
+    }
+        .filter-options .filter-options {
+          padding-top:40px;
+        }
+    .filter-options::-webkit-scrollbar {
+      width: 6px;
+    }
+    .filter-options::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    .filter-options::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+    }
+    .filter-options::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+    .filter-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+    .filter-option input[type="checkbox"] {
+      margin: 0;
+    }
+    .content-area {
+      display: flex;
+      flex: 1;
+      min-height: 600px;
+    }
+    .policy-list {
+      flex: 1;
+      padding: 0 15px;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+    }
+    .policy-list h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    .stats-area {
+      width: 400px;
+      padding: 0 15px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    #keyword-stats-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    #keyword-stats {
+      flex: 1;
+    }
+    .policy-items-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .policy-item {
+      flex: 0 0 calc(33.333% - 10px);
+      padding: 10px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 0;
+    }
+    .policy-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .policy-content {
+      font-size: 12px;
+    }
+    .policy-item p {
+      margin: 5px 0;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>政策列表</h1>
+        <button class="back-btn" onclick="window.location.href='../index.html'">返回工具集</button>
+    </div>
+  <div class="filter-area">
+    <div class="filter-section expandable-filter">
+      <div class="filter-header">
+        
+              <select id="time-dimension-select">
+        <option value="year" selected>年</option>
+        <option value="quarter">季度</option>
+        <option value="month">月</option>
+        <option value="week">周</option>
+        <option value="day">日</option>
+      </select>
+      <button id="prev-btn" disabled>时间后退</button>
+      <span class="time-display" id="time-display"></span>
+      <button id="next-btn">时间前进</button>
+      <select id="time-interval-select">
+        <option value="0" selected>不自动切换</option>
+        <option value="5">5秒</option>
+        <option value="10">10秒</option>
+        <option value="15">15秒</option>
+      </select>
+       <label>高级筛选 <span id="filter-counts"></span></label>
+        <span class="expand-icon" onclick="toggleFilter(this)">收起</span>
+      </div>
+      <div class="filter-content">
+        <div class="filter-subsections">
+        <div class="filter-subsection">
+          <label>区域：</label>
+          <div class="filter-options" id="region-filter"></div>
+        </div>
+        <div class="filter-subsection">
+          <label>类型：</label>
+          <div class="filter-options" id="type-filter"></div>
+        </div>
+        <div class="filter-subsection">
+          <label>关键词：</label>
+          <div class="filter-options" id="keyword-filter"></div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function toggleFilter(icon) {
+      var content = icon.parentElement.nextElementSibling;
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '收起';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '展开';
+      }
+    }
+  </script>
+  
+  <div class="content-area">
+    <div class="policy-list">
+      <h3>当前政策信息</h3>
+      <div class="policy-count" id="policy-count">共 0 条政策</div>
+      <div class="policy-info-content" id="policy-info-content">
+        <!-- 政策数据将通过JavaScript动态添加 -->
+      </div>
+    </div>
+    
+    <div class="stats-area">
+      <div id="keyword-stats-container">
+        <div class="stats-toggle">
+          <label><input type="radio" name="stats-type" value="keywords" checked> 关键词</label>
+          <label><input type="radio" name="stats-type" value="regions"> 区域</label>
+          <label><input type="radio" name="stats-type" value="types"> 类型</label>
+        </div>
+        <div id="keyword-stats" style="width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="time-progress-bar">
+    <div class="time-progress-fill" id="time-progress-fill"></div>
+  </div>
+  
+  <script src="js/list.js"></script>
+</body>
+</html>
