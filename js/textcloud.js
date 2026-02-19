@@ -271,6 +271,43 @@ function downloadWordCloudAsSvg() {
     }
 }
 
+// 下载CSV文件函数
+function downloadCSVData() {
+    try {
+        // 确保有数据
+        if (wordCloudData.length === 0) {
+            alert('没有可下载的数据！');
+            return;
+        }
+        
+        // 生成CSV内容
+        let csvContent = '关键词,数值\n';
+        wordCloudData.forEach(item => {
+            // 处理包含逗号或换行符的数据
+            const name = item.name.includes(',') || item.name.includes('\n') ? `"${item.name}"` : item.name;
+            csvContent += `${name},${item.value}\n`;
+        });
+        
+        // 创建Blob对象并下载
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '双碳与空气质量关键词数据.csv'; // 下载文件名
+        document.body.appendChild(a);
+        a.click();
+        
+        // 清理资源
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('CSV数据文件下载成功！');
+    } catch (err) {
+        console.error('下载CSV失败：', err);
+        alert('下载CSV失败，请检查控制台错误信息！');
+    }
+}
+
 // 渲染关键词表格
 function renderKeywordTable() {
     const tableBody = document.getElementById('keywordTableBody');
@@ -374,6 +411,9 @@ function init() {
 
     // 监听下载按钮点击
     document.getElementById('downloadSvg').addEventListener('click', downloadWordCloudAsSvg);
+    
+    // 监听下载CSV按钮点击
+    document.getElementById('downloadCSV').addEventListener('click', downloadCSVData);
 
     // 监听CSV文件选择
     document.getElementById('csvFile').addEventListener('change', function(e) {
