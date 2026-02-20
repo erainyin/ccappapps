@@ -8,7 +8,7 @@
 body, html {
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    /* overflow: hidden; */
 }
 
 body {
@@ -60,6 +60,7 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
+    background: #fff;
 }
 
 .container.not-full-height {
@@ -67,7 +68,8 @@ body {
     margin: 0 auto;
     padding: 20px;
     height: auto;
-    overflow: auto;
+    /* overflow: auto; */
+
 }
 
 /* 对应动画柱状图工具 - 容器样式 */
@@ -99,10 +101,7 @@ body {
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-around;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 10px;
 }
 
 .settings-area h3 {
@@ -115,25 +114,9 @@ body {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 15px;
     flex-wrap: wrap;
 }
 
-.settings-area .btn {
-    background: linear-gradient(135deg, #213bd1 0%, #0c66f5 100%);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.settings-area .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(12, 102, 245, 0.3);
-}
 
 .settings-area .file-upload {
     display: flex;
@@ -170,11 +153,6 @@ body {
 }
 
 /* 全局共用样式 - 图表容器样式 */
-.chart-container {
-    margin-bottom: 40px;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 40px;
-}
 
 .chart-title {
     text-align: center;
@@ -210,11 +188,11 @@ body {
 
 /* 全局共用样式 - 文件名显示样式 */
 .file-name {
-    margin-left: 10px;
     font-size: 14px;
+    line-height: 34px;
     color: #666;
-    background-color: #fff;
-    padding: 8px 12px;
+    background-color: #f0f0f0;
+    padding: 0 12px;
     border-radius: 4px;
     border: 1px solid #dcdfe6;
     min-width: 200px;
@@ -223,15 +201,19 @@ body {
 
 /* 全局共用样式 - 按钮样式 */
 .btn {
-    padding: 5px 10px;
+    padding: 0 16px;
+    height: 34px;
     background-color: #409EFF;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     transition: background-color 0.3s;
     margin: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn:hover {
@@ -239,7 +221,8 @@ body {
 }
 
 .btn-small {
-    padding: 6px 12px;
+    padding: 0 12px;
+    height: 34px;
     font-size: 14px;
 }
 
@@ -252,7 +235,8 @@ body {
 }
 
 .toggle-btn {
-    padding: 8px 16px;
+    padding: 0 16px;
+    height: 34px;
     background-color: #909399;
     color: white;
     border: none;
@@ -260,6 +244,9 @@ body {
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .toggle-btn:hover {
@@ -280,7 +267,8 @@ body {
 }
 
 .chart-type-select {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 34px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     font-size: 14px;
@@ -289,6 +277,7 @@ body {
     cursor: pointer;
     transition: border-color 0.3s;
     margin-right: 10px;
+    box-sizing: border-box;
 }
 
 .chart-type-select:hover {
@@ -315,7 +304,8 @@ body {
 }
 
 .title-input {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 34px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     font-size: 14px;
@@ -324,6 +314,7 @@ body {
     transition: border-color 0.3s;
     margin-right: 10px;
     width: 200px;
+    box-sizing: border-box;
 }
 
 .title-input:hover {
@@ -362,7 +353,8 @@ body {
 }
 
 .font-size-select {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 34px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     font-size: 14px;
@@ -371,6 +363,7 @@ body {
     cursor: pointer;
     transition: border-color 0.3s;
     min-width: 80px;
+    box-sizing: border-box;
 }
 
 .font-size-select:hover {
@@ -397,7 +390,8 @@ body {
 }
 
 .watermark-input {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 34px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     font-size: 14px;
@@ -406,6 +400,7 @@ body {
     transition: border-color 0.3s;
     width: 120px;
     margin-right: 10px;
+    box-sizing: border-box;
 }
 
 .watermark-input:hover {
@@ -445,7 +440,8 @@ body {
 }
 
 .gif-input {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 34px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     font-size: 14px;
@@ -454,6 +450,7 @@ body {
     transition: border-color 0.3s;
     width: 120px;
     margin-right: 15px;
+    box-sizing: border-box;
 }
 
 .gif-input:hover {
@@ -466,15 +463,45 @@ body {
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
+/* 全局共用样式 - 表单元素样式 */
+input[type="text"],
+input[type="number"],
+input[type="file"],
+select {
+    padding: 0 12px;
+    height: 34px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+    background-color: #fff;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover,
+select:hover {
+    border-color: #c6e2ff;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
 /* 全局共用样式 - 颜色输入样式 */
 .color-input {
-    width: 60px;
+    width: 34px;
     height: 34px;
     padding: 2px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     cursor: pointer;
-    margin-right: 15px;
+    margin-right: 5px;
 }
 
 /* 全局共用样式 - 颜色配置样式 */
@@ -501,8 +528,6 @@ body {
 .color-input-wrapper {
     display: flex;
     align-items: center;
-    margin-right: 15px;
-    margin-bottom: 5px;
 }
 
 .color-label {
@@ -534,6 +559,8 @@ body {
     display: flex;
     align-items: center;
     margin-right: 15px;
+    font-size: 14px;
+    color:#666;
 }
 
 .legend-checkbox {
@@ -562,7 +589,8 @@ body {
 }
 
 .bar-width-select {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 34px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     font-size: 14px;
@@ -571,6 +599,7 @@ body {
     cursor: pointer;
     transition: border-color 0.3s;
     margin-right: 10px;
+    box-sizing: border-box;
 }
 
 .bar-width-select:hover {
@@ -583,6 +612,35 @@ body {
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
+.visual-map-settings {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.visual-map-settings label{
+    font-size: 14px;
+    color: #666;
+    margin-left: 10px;
+    line-height: 34px;
+    width: 60px;
+}
+.visual-map-settings input{
+    height: 34px;
+}
+.visual-map-settings .visual-map-piece{
+    display: flex;
+    align-items: center;
+    margin: 5px 10px;
+}
+.visual-map-settings .color-picker{
+    width: 24px;
+    height: 24px;
+    border: 0;
+    cursor: pointer;
+    margin-right: 5px;
+}
 /* 对应动画柱状图工具 - 图表尺寸设置样式 */
 .chart-size-settings {
     display: flex;
@@ -597,7 +655,8 @@ body {
 }
 
 .chart-size-input {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 34px;
     border: 1px solid #dcdfe6;
     border-radius: 4px;
     font-size: 14px;
@@ -606,6 +665,7 @@ body {
     transition: border-color 0.3s;
     width: 100px;
     margin-right: 15px;
+    box-sizing: border-box;
 }
 
 .chart-size-input:hover {
@@ -651,13 +711,18 @@ body {
 }
 
 .config-item button {
-    padding: 8px 16px;
+    padding: 0 16px;
+    height: 34px;
     background-color: #409EFF;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 14px;
     transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .config-item button:hover {
@@ -783,7 +848,8 @@ body {
 }
 
 .edit-controls button {
-    padding: 6px 12px;
+    padding: 0 12px;
+    height: 34px;
     background-color: #409EFF;
     color: white;
     border: none;
@@ -791,6 +857,9 @@ body {
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .edit-controls button:hover {
@@ -891,7 +960,7 @@ body {
 .container {
     margin: 0 auto;
     height: auto;
-    overflow: auto;
+    /* overflow: auto; */
 }
 
 .tools-grid {

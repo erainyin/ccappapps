@@ -22,11 +22,18 @@
                 <label for="csvFile" class="btn">选择CSV文件</label>
                 <input type="file" id="csvFile" class="file-input" accept=".csv">
                 <span id="fileName" class="file-name">当前文件：data.csv</span>
-                <button id="toggleSettingsBtn" class="btn btn-small">收起设置</button>
+                <button id="replayBtn" class="btn">↻</button><!--重新播放-->
+                <button id="playBtn" class="btn">▸</button><!--播放动画-->
+                <button id="pauseBtn" class="btn">■</button><!--暂停动画-->
+                <button id="exportBtn" class="btn">导出GIF</button>
+                <button id="exportPngBtn" class="btn">导出PNG序列</button>
+
+
+                <button id="toggleSettingsBtn" class="btn btn-small">展开设置</button>
             </div>
             
             <!-- 可展开收起的设置区域 -->
-            <div id="advancedSettings" class="advanced-settings">
+            <div id="advancedSettings" class="advanced-settings" style="display: none;">
                 <!-- 第二行：设置图表标题、图表类型 -->
                 <div class="setting-row">
                     <!-- 图表标题设置 -->
@@ -150,11 +157,7 @@
                         </label>
                         <button id="applyWatermarkBtn" class="btn btn-small">应用水印设置</button>
                     </div>
-                </div>
-                
-                <!-- 新增行：图例设置 -->
-                <div class="setting-row">
-                    <!-- 图例显示设置 -->
+                                        <!-- 图例显示设置 -->
                     <div class="legend-selector">
                         <label class="legend-checkbox">
                             <input type="checkbox" id="showLegend" checked>
@@ -163,7 +166,7 @@
                         <button id="applyLegendBtn" class="btn btn-small">应用图例设置</button>
                     </div>
                 </div>
-                
+            
                 <!-- 新增行：颜色配置设置 -->
                 <div class="setting-row">
                     <!-- 颜色配置 -->
@@ -196,9 +199,17 @@
                     </div>
                 </div>
                 
-                <!-- 新增行：柱子宽度设置 -->
+                <!-- 新增行：图表尺寸设置 -->
                 <div class="setting-row">
-                    <!-- 柱子宽度设置 -->
+                    <!-- 图表宽度设置 -->
+                    <div class="chart-size-settings">
+                        <label for="chartWidth">图表宽度：</label>
+                        <input type="number" id="chartWidth" class="chart-size-input" value="1200" min="400" max="2000">
+                        <label for="chartHeight">图表高度：</label>
+                        <input type="number" id="chartHeight" class="chart-size-input" value="600" min="400" max="1500">
+                        <button id="applySizeBtn" class="btn btn-small">应用尺寸</button>
+                    </div>
+                                        <!-- 柱子宽度设置 -->
                     <div class="bar-width-settings">
                         <label for="barWidth">柱子宽度：</label>
                         <select id="barWidth" class="bar-width-select">
@@ -210,28 +221,8 @@
                         <button id="applyBarWidthBtn" class="btn btn-small">应用柱子宽度</button>
                     </div>
                 </div>
-                
-                <!-- 新增行：图表尺寸设置 -->
-                <div class="setting-row">
-                    <!-- 图表宽度设置 -->
-                    <div class="chart-size-settings">
-                        <label for="chartWidth">图表宽度：</label>
-                        <input type="number" id="chartWidth" class="chart-size-input" value="1200" min="400" max="2000">
-                        <label for="chartHeight">图表高度：</label>
-                        <input type="number" id="chartHeight" class="chart-size-input" value="400" min="400" max="1500">
-                        <button id="applySizeBtn" class="btn btn-small">应用尺寸</button>
-                    </div>
-                </div>
             </div>
             
-            <!-- 第三行：播放动画、暂停动画、重新播放、导出GIF按钮 -->
-            <div class="setting-row">
-                <button id="replayBtn" class="btn">↻</button><!--重新播放-->
-                <button id="playBtn" class="btn">▸</button><!--播放动画-->
-                <button id="pauseBtn" class="btn">■</button><!--暂停动画-->
-                <button id="exportBtn" class="btn">导出GIF</button>
-                <button id="exportPngBtn" class="btn">导出PNG序列</button>
-            </div>
         </div>
         <div id="chart"></div>
     </div>

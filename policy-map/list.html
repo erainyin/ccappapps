@@ -12,12 +12,10 @@
       min-height: 100vh;
       margin: 0;
       padding: 0;
+      background-color: #fff;
     }
     .filter-area {
-      padding: 15px;
       background-color: #f5f5f5;
-      border-bottom: 1px solid #ddd;
-      margin-bottom: 20px;
     }
     .filter-content {
       display: flex;
@@ -25,30 +23,95 @@
       gap: 20px;
     }
     .filter-section {
-      margin-bottom: 10px;
       padding: 10px;
-      background-color: #fff;
-      border-radius: 4px;
-      border: 1px solid #e0e0e0;
     }
     .filter-section label {
       margin-right: 10px;
-      font-weight: bold;
       font-size: 12px;
     }
     .expandable-filter .filter-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
       cursor: pointer;
     }
     .expandable-filter .filter-header:hover {
       background-color: #f5f5f5;
     }
+    
+    /* 统一按钮样式 */
+    button {
+padding: 0 16px;
+    height: 34px;
+    background-color: #409EFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    margin: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    }
+    
+    button:hover {
+        border-color: #40a9ff;
+        background: #40a9ff;
+        color: #fff;
+    }
+    
+    button:disabled {
+        cursor: not-allowed;
+        color: #bfbfbf;
+        border-color: #d9d9d9;
+        background: #fff;
+    }
+    
+    /* 统一文件上传按钮样式 */
+    .file-upload label {
+ padding: 0 16px;
+    height: 34px;
+    background-color: #409EFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    margin: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    }
+    
+    .file-upload label:hover {
+        border-color: #40a9ff;
+        background: #40a9ff;
+        color: #fff;
+    }
+    
+    /* 统一展开/收起按钮样式 */
     .expandable-filter .expand-icon {
-      font-size: 16px;
-      font-weight: bold;
-      user-select: none;
+padding: 0 16px;
+    height: 34px;
+    background-color: #409EFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    margin: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    }
+    
+    .expandable-filter .expand-icon:hover {
+        border-color: #40a9ff;
+        background: #40a9ff;
+        color: #fff;
     }
     .filter-content {
       margin-top: 10px;
@@ -201,10 +264,16 @@
         <option value="10">10秒</option>
         <option value="15">15秒</option>
       </select>
-       <label>高级筛选 <span id="filter-counts"></span></label>
-        <span class="expand-icon" onclick="toggleFilter(this)">收起</span>
+      <button id="downloadCSVBtn">下载当前数据</button>
+      <div class="file-upload">
+        <label for="csvFileUpload" class="btn">选择CSV文件</label>
+        <input type="file" id="csvFileUpload" accept=".csv" style="display: none;">
+        <span id="uploadFileName" class="file-name">未选择文件</span>
       </div>
-      <div class="filter-content">
+       <label>高级筛选 <span id="filter-counts"></span></label>
+        <span class="expand-icon" onclick="toggleFilter(this)">展开</span>
+      </div>
+      <div class="filter-content" style="display: none;">
         <div class="filter-subsections">
         <div class="filter-subsection">
           <label>区域：</label>
@@ -237,7 +306,6 @@
   
   <div class="content-area">
     <div class="policy-list">
-      <h3>当前政策信息</h3>
       <div class="policy-count" id="policy-count">共 0 条政策</div>
       <div class="policy-info-content" id="policy-info-content">
         <!-- 政策数据将通过JavaScript动态添加 -->

@@ -39,7 +39,7 @@ window.addEventListener('load', function() {
         
         // 设置默认图表尺寸
         const defaultWidth = 1200;
-        const defaultHeight = 400;
+        const defaultHeight = 600;
         
         // 强制设置图表元素的样式，确保尺寸不会被其他因素影响
         chartElement.style.width = defaultWidth + 'px';
@@ -241,13 +241,14 @@ window.addEventListener('load', function() {
         
         toggleSettingsBtn.addEventListener('click', function() {
             // 切换设置区域的显示/隐藏
-            advancedSettings.classList.toggle('collapsed');
-            
-            // 更新按钮文本
-            if (advancedSettings.classList.contains('collapsed')) {
-                toggleSettingsBtn.textContent = '展开设置';
-            } else {
+            if (advancedSettings.style.display === 'none' || advancedSettings.style.display === '') {
+                // 如果当前是隐藏状态，则显示它
+                advancedSettings.style.display = 'block';
                 toggleSettingsBtn.textContent = '收起设置';
+            } else {
+                // 如果当前是显示状态，则隐藏它
+                advancedSettings.style.display = 'none';
+                toggleSettingsBtn.textContent = '展开设置';
             }
             
             // 延迟一段时间，等待CSS过渡完成后调整图表大小
@@ -1254,11 +1255,6 @@ function initColorInputs() {
         colorInput.value = color;
         colorInput.dataset.index = index;
         
-        const colorLabel = document.createElement('span');
-        colorLabel.className = 'color-label';
-        colorLabel.textContent = `颜色 ${index + 1}`;
-        
-        colorInputWrapper.appendChild(colorLabel);
         colorInputWrapper.appendChild(colorInput);
         colorInputsContainer.appendChild(colorInputWrapper);
     });

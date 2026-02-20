@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>浓度方块图（兼容PM2.5和O3）</title>
+    <!-- 引入 ECharts 核心库 -->
+    <script src="js/echarts.min.js"></script>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body style="background-color: #fff;">
+    <div class="navbar">
+        <h1>浓度方块图（兼容PM2.5和O3）</h1>
+        <button class="back-btn" onclick="window.location.href='index.html'">返回工具集</button>
+    </div>
+    <!-- 设置区域 -->
+    <div class="settings-area">
+        <div class="settings-row">
+            <button id="downloadCSVBtn" class="btn">下载当前数据 (CSV)</button>
+            <div class="file-upload">
+                <label for="csvFile" class="btn">选择CSV文件</label>
+                <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                <span id="fileName" class="file-name">未选择文件</span>
+            </div>
+            <button id="toggleSettingsBtn" class="btn">展开设置</button>
+        </div>
+        
+        <!-- 图例颜色设置 - 默认收起 -->
+        <div id="advancedSettings" class="settings-row" style="display: none;">
+            <div class="visual-map-settings">
+                <!-- 颜色配置下拉菜单 -->
+                <div class="color-config-selector">
+                    <label>颜色配置: </label>
+                    <select id="colorConfig" class="color-config-select">
+                        <option value="o3">O3默认</option>
+                        <option value="pm25">PM2.5默认</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                
+                <!-- 自定义颜色配置 - 默认显示 -->
+                <div id="customColorConfig">
+                    <!-- 基于哪个默认配置 -->
+                    <div class="color-config-selector">
+                        <label>基于默认配置: </label>
+                        <select id="baseConfig" class="color-config-select">
+                            <option value="o3">O3默认</option>
+                            <option value="pm25">PM2.5默认</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 分段容器 -->
+                    <div id="rangePiecesContainer">
+                        <div class="visual-map-piece" data-piece-index="1">
+                            <label>范围1: </label>
+                            <input type="number" id="range1Min" value="0" min="0" max="500" placeholder="最小值">-
+                            <input type="number" id="range1Max" value="100" min="0" max="500" placeholder="最大值">
+                            <input type="color" id="color1" value="#CFEC71" class="color-picker">
+                            <button type="button" class="btn btn-small delete-piece-btn">删除</button>
+                        </div>
+                        <div class="visual-map-piece" data-piece-index="2">
+                            <label>范围2: </label>
+                            <input type="number" id="range2Min" value="101" min="0" max="500" placeholder="最小值">-
+                            <input type="number" id="range2Max" value="130" min="0" max="500" placeholder="最大值">
+                            <input type="color" id="color2" value="#F0EA7F" class="color-picker">
+                            <button type="button" class="btn btn-small delete-piece-btn">删除</button>
+                        </div>
+                        <div class="visual-map-piece" data-piece-index="3">
+                            <label>范围3: </label>
+                            <input type="number" id="range3Min" value="131" min="0" max="500" placeholder="最小值">-
+                            <input type="number" id="range3Max" value="160" min="0" max="500" placeholder="最大值">
+                            <input type="color" id="color3" value="#F1C454" class="color-picker">
+                            <button type="button" class="btn btn-small delete-piece-btn">删除</button>
+                        </div>
+                        <div class="visual-map-piece" data-piece-index="4">
+                            <label>范围4: </label>
+                            <input type="number" id="range4Min" value="161" min="0" max="500" placeholder="最小值">-
+                            <input type="number" id="range4Max" value="190" min="0" max="500" placeholder="最大值">
+                            <input type="color" id="color4" value="#F0723D" class="color-picker">
+                            <button type="button" class="btn btn-small delete-piece-btn">删除</button>
+                        </div>
+                        <div class="visual-map-piece" data-piece-index="5">
+                            <label>范围5: </label>
+                            <input type="number" id="range5Min" value="191" min="0" max="500" placeholder="最小值">-
+                            <input type="number" id="range5Max" value="200" min="0" max="500" placeholder="最大值">
+                            <input type="color" id="color5" value="#E02B24" class="color-picker">
+                            <button type="button" class="btn btn-small delete-piece-btn">删除</button>
+                        </div>
+                        <div class="visual-map-piece" data-piece-index="6">
+                            <label>范围6: </label>
+                            <input type="number" id="range6Min" value="201" min="0" max="500" placeholder="最小值">-
+                            <input type="number" id="range6Max" value="500" min="0" max="500" placeholder="最大值">
+                            <input type="color" id="color6" value="#9F1627" class="color-picker">
+                            <button type="button" class="btn btn-small delete-piece-btn">删除</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 添加分段按钮 -->
+                    <div class="add-piece-container">
+                        <button type="button" id="addPieceBtn" class="btn">添加分段</button>
+                    </div>
+                </div>
+                <button id="applyVisualMapBtn" class="btn">应用</button>
+            </div>
+        </div>
+    </div>
+    <div class="container not-full-height">        
+                
+        <!-- 第1个图表 - jjj.csv -->
+        <div class="chart-container">
+、            <div id="chart-jjj" class="chart"></div>
+                    <div class="chart-info">
+            <p>注：浓度数据，根据上传的CSV文件类型显示相应的浓度指标</p>
+        </div>
+        </div>
+        
+
+    </div>
+    
+    <script src="./js/pieces.js"></script>
+</body>
+</html>

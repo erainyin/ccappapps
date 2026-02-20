@@ -31,20 +31,337 @@ var selectedFilters = {
   keywords: []
 };
 
+// 解析CSV数据
+function parseCSV(csvText) {
+  // 更健壮的CSV解析逻辑，支持包含换行符的字段
+  const data = [];
+  let lines = [];
+  let currentLine = '';
+  let inQuotes = false;
+  
+  // 逐字符解析CSV文本，正确处理包含换行符的字段
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      currentLine += char;
+    } else if (char === '\n' && !inQuotes) {
+      // 遇到换行符且不在引号内，说明一行结束
+      lines.push(currentLine.trim());
+      currentLine = '';
+    } else {
+      currentLine += char;
+    }
+  }
+  
+  // 添加最后一行
+  if (currentLine.trim()) {
+    lines.push(currentLine.trim());
+  }
+  
+  // 解析表头
+  const headers = lines[0].split(',').map(header => header.trim());
+  
+  // 定义需要的列
+  const requiredColumns = ['政策名称', '省份', '发布时间', '分类', '关键词', '简介', '政府链接'];
+  
+  // 检查是否包含所有必要的列
+  const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+  if (missingColumns.length > 0) {
+    console.warn('CSV文件缺少必要的列:', missingColumns);
+    alert('CSV文件缺少必要的列: ' + missingColumns.join(', '));
+    return []; // 直接返回空数组，确保不加载任何数据
+  }
+  
+  // 解析数据行
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    
+    // 处理包含逗号的字段
+    const values = [];
+    let currentValue = '';
+    let inQuotes = false;
+    
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        currentValue += char;
+      } else if (char === ',' && !inQuotes) {
+        values.push(currentValue.trim());
+        currentValue = '';
+      } else {
+        currentValue += char;
+      }
+    }
+    values.push(currentValue.trim());
+    
+    const item = {};
+    
+    // 只提取需要的列
+    requiredColumns.forEach(column => {
+      const index = headers.indexOf(column);
+      if (index !== -1 && index < values.length) {
+        let value = values[index] || '';
+        
+        switch (column) {
+          case '政策名称':
+            // 处理引号包裹的字段
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            item.policy_name = value;
+            break;
+          case '省份':
+            // 处理引号包裹的字段
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            item.region = value;
+            break;
+          case '发布时间':
+            // 处理引号包裹的字段
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            // 转换日期格式：2025/1/8 -> 2025-1-8
+            const formattedDate = value.replace(/\//g, '-').trim();
+            item.time = formattedDate;
+            break;
+          case '分类':
+            // 处理引号包裹的字段
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            item.policy_category = value;
+            break;
+          case '关键词':
+            // 处理引号包裹的字段
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            // 处理包含换行的关键词
+            let cleanedKeywords = value.replace(/\n/g, ',').trim();
+            item.policy_tags = cleanedKeywords ? cleanedKeywords.split(',').map(tag => tag.trim()) : [];
+            break;
+          case '简介':
+            // 处理引号包裹的字段
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            item.policy_summary = value;
+            break;
+          case '政府链接':
+            // 处理引号包裹的字段
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            item.link = value;
+            break;
+        }
+      } else {
+        // 如果列不存在或没有值，设置为空字符串
+        switch (column) {
+          case '政策名称':
+            item.policy_name = '';
+            break;
+          case '省份':
+            item.region = '';
+            break;
+          case '发布时间':
+            item.time = '';
+            break;
+          case '分类':
+            item.policy_category = '';
+            break;
+          case '关键词':
+            item.policy_tags = [];
+            break;
+          case '简介':
+            item.policy_summary = '';
+            break;
+          case '政府链接':
+            item.link = '';
+            break;
+        }
+      }
+    });
+    
+    // 添加默认的policy_level
+    item.policy_level = '省级';
+    
+    data.push(item);
+  }
+  
+  return data;
+}
+
+// 下载CSV文件
+function downloadCSV() {
+  // 将当前政策数据转换为CSV格式
+  let csvContent = '政策名称,省份,发布时间,分类,关键词,简介,政府链接\n';
+  
+  policyData.forEach(function(item) {
+    const policyName = item.policy_name || '';
+    const region = item.region || '';
+    const time = item.time || '';
+    const category = item.policy_category || '';
+    const keywords = item.policy_tags ? item.policy_tags.join(',') : '';
+    const summary = item.policy_summary || '';
+    const link = item.link || '';
+    
+    // 处理包含逗号和换行的字段，用引号包裹
+    const fields = [policyName, region, time, category, keywords, summary, link];
+    const csvLine = fields.map(field => {
+      if (field.includes(',') || field.includes('\n') || field.includes('"')) {
+        return '"' + field.replace(/"/g, '""') + '"';
+      }
+      return field;
+    }).join(',');
+    
+    csvContent += csvLine + '\n';
+  });
+  
+  // 创建Blob对象
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'policy-data.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// 处理文件上传
+function handleFileUpload(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const csvText = e.target.result;
+      // 解析CSV数据
+      policyData = parseCSV(csvText);
+      
+      // 检查是否成功解析到数据
+      if (policyData.length === 0) {
+        console.warn('没有成功解析到政策数据');
+        // 显示错误信息
+        var policyContentElement = document.getElementById('policy-info-content');
+        if (policyContentElement) {
+          policyContentElement.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">没有成功解析到政策数据，请检查CSV文件格式</div>';
+        }
+        var policyCountElement = document.getElementById('policy-count');
+        if (policyCountElement) {
+          policyCountElement.textContent = '共 0 条政策';
+        }
+        // 更新文件名显示
+        const fileNameSpan = document.getElementById('uploadFileName');
+        if (fileNameSpan) {
+          fileNameSpan.textContent = file.name;
+        }
+        return;
+      }
+      
+      console.log('文件上传成功，解析出', policyData.length, '条政策数据');
+      
+      // 重新分组数据
+      groupDataByTimeDimension();
+      
+      // 更新时间列表
+      timeList = Object.keys(timeGroupedData).sort(function(a, b) {
+        var dateA = parseTimeString(a);
+        var dateB = parseTimeString(b);
+        return dateA - dateB;
+      });
+      
+      // 重置时间索引
+      currentTimeIndex = 0;
+      
+      // 更新时间显示
+      var timeDisplayElement = document.getElementById('time-display');
+      if (timeDisplayElement && timeList.length > 0) {
+        timeDisplayElement.textContent = timeList[currentTimeIndex];
+      }
+      
+      // 提取筛选选项
+      extractFilterOptions();
+      
+      // 生成筛选复选框
+      generateFilterCheckboxes();
+      
+      // 绑定筛选事件
+      bindFilterEvents();
+      
+      // 更新页面
+      updatePage();
+      
+      // 更新按钮状态
+      var prevBtn = document.getElementById('prev-btn');
+      var nextBtn = document.getElementById('next-btn');
+      if (prevBtn) {
+        prevBtn.disabled = currentTimeIndex === 0;
+      }
+      if (nextBtn) {
+        nextBtn.disabled = currentTimeIndex === timeList.length - 1;
+      }
+      
+      // 重置自动时间切换定时器
+      resetAutoTimeSwitch();
+      
+      // 更新文件名显示
+      const fileNameSpan = document.getElementById('uploadFileName');
+      if (fileNameSpan) {
+        fileNameSpan.textContent = file.name;
+      }
+      
+      alert('文件上传成功，已解析并显示数据');
+    } catch (error) {
+      console.error('处理CSV文件失败:', error);
+      alert('处理CSV文件失败: ' + error.message);
+    }
+  };
+  reader.onerror = function() {
+    console.error('文件读取失败');
+    alert('读取文件失败');
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
 // 初始化函数
 function init() {
   console.log('开始加载数据...');
   
   // 加载政策数据
-  fetch('data/policy_data.json')
+  fetch('data/test-policy.csv')
     .then(function(response) {
       if (!response.ok) {
         throw new Error('政策数据加载失败: ' + response.status);
       }
-      return response.json();
+      return response.text();
     })
-    .then(function(data) {
-      policyData = data;
+    .then(function(csvText) {
+      // 解析CSV数据
+      policyData = parseCSV(csvText);
+      
+      // 检查是否成功解析到数据
+      if (policyData.length === 0) {
+        console.warn('没有成功解析到政策数据');
+        // 显示错误信息
+        var policyContentElement = document.getElementById('policy-info-content');
+        if (policyContentElement) {
+          policyContentElement.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">没有成功解析到政策数据，请检查CSV文件格式</div>';
+        }
+        var policyCountElement = document.getElementById('policy-count');
+        if (policyCountElement) {
+          policyCountElement.textContent = '共 0 条政策';
+        }
+        return;
+      }
+      
       console.log('政策数据加载成功:', policyData);
       
       // 按时间分组数据
@@ -84,7 +401,9 @@ function init() {
       
       // 绑定按钮事件
       bindButtonEvents();
-      console.log('按钮事件绑定完成');
+      
+      // 绑定下载和上传按钮事件
+      bindDownloadUploadEvents();
       
       console.log('初始化完成');
     })
@@ -96,6 +415,26 @@ function init() {
         policyContentElement.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">加载数据失败: ' + error.message + '</div>';
       }
     });
+}
+
+// 绑定下载和上传按钮事件
+function bindDownloadUploadEvents() {
+  // 绑定下载按钮事件
+  const downloadBtn = document.getElementById('downloadCSVBtn');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', downloadCSV);
+  }
+  
+  // 绑定文件上传事件
+  const csvFileInput = document.getElementById('csvFileUpload');
+  if (csvFileInput) {
+    csvFileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        handleFileUpload(file);
+      }
+    });
+  }
 }
 
 // 绑定按钮事件
@@ -136,7 +475,7 @@ function bindButtonEvents() {
         
         // 更新时间显示
         var timeDisplayElement = document.getElementById('time-display');
-        if (timeDisplayElement && timeList.length > 0) {
+        if (timeDisplayElement && timeList.length > 0 && currentTimeIndex < timeList.length) {
           timeDisplayElement.textContent = timeList[currentTimeIndex];
         }
         
@@ -303,7 +642,7 @@ function startAutoTimeSwitch() {
         
         // 更新时间显示
         var timeDisplayElement = document.getElementById('time-display');
-        if (timeDisplayElement && timeList.length > 0) {
+        if (timeDisplayElement && timeList.length > 0 && currentTimeIndex < timeList.length) {
           timeDisplayElement.textContent = timeList[currentTimeIndex];
         }
         
@@ -348,6 +687,12 @@ function groupDataByTimeDimension() {
     var timeKey;
     var date = new Date(item.time);
     
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      console.warn('无效的日期格式:', item.time);
+      return;
+    }
+    
     switch (currentTimeDimension) {
       case 'day':
         // 按日分组，使用完整日期
@@ -384,11 +729,22 @@ function groupDataByTimeDimension() {
 
 // 解析时间字符串为日期对象
 function parseTimeString(timeStr) {
+  if (!timeStr) {
+    return new Date();
+  }
+  
   if (timeStr.includes('-Q')) {
     // 处理季度格式：2025-Q1
     var parts = timeStr.split('-Q');
     var year = parseInt(parts[0]);
     var quarter = parseInt(parts[1]);
+    
+    // 检查解析结果是否有效
+    if (isNaN(year) || isNaN(quarter)) {
+      console.warn('无效的季度格式:', timeStr);
+      return new Date();
+    }
+    
     var month = (quarter - 1) * 3;
     return new Date(year, month, 1);
   } else if (timeStr.includes('-W')) {
@@ -396,6 +752,13 @@ function parseTimeString(timeStr) {
     var parts = timeStr.split('-W');
     var year = parseInt(parts[0]);
     var week = parseInt(parts[1]);
+    
+    // 检查解析结果是否有效
+    if (isNaN(year) || isNaN(week)) {
+      console.warn('无效的周格式:', timeStr);
+      return new Date();
+    }
+    
     // 计算周的开始日期
     var d = new Date(Date.UTC(year, 0, 1));
     var dayNum = d.getUTCDay() || 7;
@@ -411,10 +774,22 @@ function parseTimeString(timeStr) {
     var parts = timeStr.split('-');
     var year = parseInt(parts[0]);
     var month = parseInt(parts[1]) - 1;
+    
+    // 检查解析结果是否有效
+    if (isNaN(year) || isNaN(month)) {
+      console.warn('无效的月份格式:', timeStr);
+      return new Date();
+    }
+    
     return new Date(year, month, 1);
   } else {
     // 处理日期格式：2025-1-20
-    return new Date(timeStr);
+    var date = new Date(timeStr);
+    if (isNaN(date.getTime())) {
+      console.warn('无效的日期格式:', timeStr);
+      return new Date();
+    }
+    return date;
   }
 }
 
@@ -503,9 +878,19 @@ function updatePolicyInfoPanel(data, regionData) {
   
   var html = '<div class="policy-items-container">';
   data.forEach(function(item, index) {
-    // 格式化日期
-    var date = new Date(item.time);
-    var formattedDate = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+    // 处理各个字段，确保空值显示为"暂无[字段名称]"
+    var formattedDate = '';
+    if (item.time) {
+      var date = new Date(item.time);
+      formattedDate = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+    } else {
+      formattedDate = '暂无发布时间';
+    }
+    
+    var region = item.region || '暂无省份';
+    var policyName = item.policy_name || '暂无政策名称';
+    var policyLevel = item.policy_level || '暂无政策级别';
+    var policyCategory = item.policy_category || '暂无分类';
     
     // 处理关键词，拆分包含逗号的关键词
     var processedTags = [];
@@ -528,16 +913,24 @@ function updatePolicyInfoPanel(data, regionData) {
     
     // 生成关键词标签HTML
     var tagsHtml = '';
-    processedTags.forEach(function(tag) {
-      tagsHtml += `<span class="value policy-tags">${tag}</span> `;
-    });
+    if (processedTags.length > 0) {
+      processedTags.forEach(function(tag) {
+        tagsHtml += `<span class="value policy-tags">${tag}</span> `;
+      });
+    } else {
+      tagsHtml = '暂无关键词';
+    }
+    
+    // 处理简介和链接，用于tooltip和点击事件
+    var summary = item.policy_summary || '暂无简介';
+    var link = item.link || '';
     
     html += `
-      <div class="policy-info-item policy-item" data-index="${index}" data-summary="${item.policy_summary}" data-link="${item.link}" style="cursor: pointer;">
-        <div class="policy-title"><span class="date">${formattedDate}</span> <span class="region">${item.region}</span> <span class="policy-name">${item.policy_name}</span></div>
+      <div class="policy-info-item policy-item" data-index="${index}" data-summary="${summary}" data-link="${link}" style="cursor: pointer;">
+        <div class="policy-title"><span class="date">${formattedDate}</span> <span class="region">${region}</span> <span class="policy-name">${policyName}</span></div>
         <div class="policy-content">
           <div class="detail-item policy-level-category">
-            <span class="value policy-level">${item.policy_level}</span> <span class="value policy-category">${item.policy_category}</span>
+            <span class="value policy-level">${policyLevel}</span> <span class="value policy-category">${policyCategory}</span>
           </div>
           <div class="detail-item keyword-tags">
             ${tagsHtml}
@@ -573,6 +966,12 @@ function updatePolicyInfoPanel(data, regionData) {
       var summary = this.getAttribute('data-summary');
       tooltip.textContent = summary;
       tooltip.style.display = 'block';
+      
+      // 输出政策信息到控制台
+      var policyIndex = parseInt(this.getAttribute('data-index'));
+      if (!isNaN(policyIndex) && data[policyIndex]) {
+        console.log('政策信息:', data[policyIndex]);
+      }
       
       // 计算位置
       var rect = this.getBoundingClientRect();
