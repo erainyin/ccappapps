@@ -1405,11 +1405,6 @@
                         if (value >= 191) {
                             labelColor = '#fff';
                         }
-                        if (value > 160 && value <= 190) {
-                            borderColor = '#D8EE2C';
-                            borderWidth = 3;
-                            borderType = 'dashed';
-                        }
                     }
                 }
                 
@@ -1674,7 +1669,7 @@
                 mapContainer.appendChild(legendImg);
             }
             
-            var legendSrc = currentDataType === 'PM25' ? 'assets/Legend-pm25.png' : 'assets/Legend-o3.png';
+            var legendSrc = currentDataType === 'PM25' ? 'assets/Legend-pm25.png' : 'assets/Legend-O3.png';
             if (legendImg.src !== legendSrc) {
                 legendImg.src = legendSrc;
             }
