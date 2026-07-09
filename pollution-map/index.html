@@ -163,12 +163,13 @@
         }
         .zoom-control {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: stretch;
-            gap: 10px;
+            gap: 4px;
         }
         .zoom-control .btn {
             flex: 1;
+            padding:5px;
         }
         #zoom-value {
             font-size: 14px;
@@ -179,13 +180,19 @@
             background: #f5f5f5;
             border-radius: 4px;
         }
+        .wuzhong{
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 4px;
+        }
         .stroke-settings {
             margin-top: 20px;
             padding: 15px;
             background: #fff;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
-        }
+        }     
         .stroke-settings h4 {
             font-size: 14px;
             color: #333;
@@ -283,7 +290,7 @@
         .map-params strong {
             color: #666;
         }
-        .map-params.hidden {
+        .hidden {
             display: none;
         }
         .params-divider {
@@ -291,14 +298,22 @@
             background: #eee;
             margin: 10px 0;
         }
+        .highlight-row {
+            background-color: rgba(158, 238, 104, 0.3);
+        }
+        .hidden-btn {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="config-panel">
             <div class="btn-group">
-                                <button class="btn" id="btn-csv-select">选择CSV文件</button>
+               <button class="btn" id="btn-csv-select">选择CSV文件</button>
                 <button class="btn" id="btn-download">下载图片</button>
+            </div>
+            <div class="btn-group wuzhong">
                 <button class="btn active" id="btn-pm25">PM2.5</button>
                 <button class="btn" id="btn-o3">O3</button>
             </div>
@@ -308,16 +323,17 @@
                 <button class="btn" id="btn-cy">成渝地区</button>
                 <button class="btn" id="btn-fw">汾渭平原</button>
                 <button class="btn" id="btn-csj">长三角地区</button>
+                <button class="btn hidden" id="btn-zsj">珠三角地区</button>
 
             </div>
 
             <div class="zoom-control">
                 <button class="btn" id="btn-roam-toggle">开启拖动和缩放</button>
-                                <button class="btn" id="btn-legend">图例</button>
-
+                <button class="btn" id="btn-legend">图例</button>
+                <button class="btn" id="btn-stroke-settings">描边设置</button>
                 <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
             </div>
-            <div class="stroke-settings">
+            <div class="stroke-settings hidden">
                 <h4>描边设置</h4>
                 <div class="setting-group">
                     <label>南海诸岛颜色:</label>
@@ -723,6 +739,10 @@
             '宿州市', '绍兴市', '嘉兴市', '徐州市', '上海市', '淮北市', '南通市', '淮南市',
             '合肥市', '杭州市', '南京市', '阜阳市', '苏州市', '蚌埠市', '泰州市', '湖州市',
             '无锡市', '常州市', '芜湖市', '扬州市', '滁州市', '镇江市', '马鞍山市'
+        ];
+
+        var zsjCities = [
+            '肇庆市', '广州市', '惠州市', '佛山市', '深圳市', '珠海市', '江门市', '中山市', '东莞市'
         ];
 
         var cityAdcodeMap = {
@@ -1258,6 +1278,11 @@
                 center = [113.0995, 16.8172];
                 layoutCenter = [680.00, 450.00];
                 layoutSize = 1980.00;
+            } else if (regionType === 'ZSJ') {
+                zoom = 5.15;
+                center = [76.5517, 63.8435];
+                layoutCenter = [600.00, 380.00];
+                layoutSize = 720.00;
             }
             
             return {
@@ -1286,7 +1311,8 @@
                     }
                     
                     var cityCodePrefix = cityCode.substring(0, 2);
-                    if (mCodePrefixes.indexOf(cityCodePrefix) !== -1) {
+                    var mCode = cityCodePrefix + '0000';
+                    if (mCodePrefixes.indexOf(cityCodePrefix) !== -1 && municipalityGeoData[mCode]) {
                         return false;
                     }
                     return true;
@@ -1442,6 +1468,11 @@
                 whiteblock.style.display = filterCities ? 'none' : 'block';
             }
 
+            var boundaryOverlay = document.querySelector('.boundary-overlay');
+            if (boundaryOverlay) {
+                boundaryOverlay.style.display = filterCities ? 'none' : 'block';
+            }
+
             var option = {
                 backgroundColor: '#fff',
                 tooltip: {
@@ -1569,15 +1600,30 @@
             chart.off('geoRoam');
             chart.on('geoRoam', function(params) {
                 if (!roamEnabled) return;
+                
                 var option = chart.getOption();
-                var geoOption = option.geo && option.geo[0];
-                if (geoOption) {
+                var seriesOption = option.series && option.series[0];
+                
+                var series = chart.getModel().getSeries()[0];
+                if (series && series.coordinateSystem) {
+                    var coordSys = series.coordinateSystem;
+                    var zoom = coordSys.getZoom ? coordSys.getZoom() : (coordSys._zoom || 1);
+                    var center = coordSys.getCenter ? coordSys.getCenter() : (coordSys._center || [110, 30]);
+                    
                     updateParamsPanel(
                         regionType || '全国',
-                        geoOption.zoom,
-                        geoOption.center,
-                        geoOption.layoutCenter,
-                        geoOption.layoutSize
+                        zoom,
+                        center,
+                        seriesOption ? seriesOption.layoutCenter : [600, 380],
+                        seriesOption ? seriesOption.layoutSize : 720
+                    );
+                } else if (seriesOption) {
+                    updateParamsPanel(
+                        regionType || '全国',
+                        seriesOption.zoom,
+                        seriesOption.center,
+                        seriesOption.layoutCenter,
+                        seriesOption.layoutSize
                     );
                 }
             });
@@ -1832,7 +1878,7 @@
                 
                 var municipalityGeoData = {};
                 var loadedCount = 0;
-                var totalMunicipalities = 4;
+                var totalMunicipalities = 1;
                 
                 var loadMunicipality = function(code, name) {
                     loadGeoJSON('data/' + name + '.geojson', function(data) {
@@ -1844,9 +1890,9 @@
                     });
                 };
                 
-                loadMunicipality('110000', 'beijing');
-                loadMunicipality('120000', 'tianjin');
-                loadMunicipality('310000', 'shanghai');
+                // loadMunicipality('110000', 'beijing');
+                // loadMunicipality('120000', 'tianjin');
+                // loadMunicipality('310000', 'shanghai');
                 loadMunicipality('500000', 'chongqing');
             });
             
@@ -1902,7 +1948,8 @@
             'JJJ': '京津冀及周边地区“2+36”城市',
             'CY': '成渝地区',
             'FW': '汾渭平原地区',
-            'CSJ': '长三角地区'
+            'CSJ': '长三角地区',
+            'ZSJ': '珠三角地区'
         };
 
         function getTitle(region) {
@@ -1947,7 +1994,11 @@
             
             var html = '';
             for (var i = 0; i < items.length; i++) {
-                html += '<li><span class="city-name">' + items[i].city + '</span><span class="city-value">' + items[i].value + '</span></li>';
+                var highlightClass = '';
+                if (currentDataType === 'PM25' && items[i].value > 25 && items[i].value <= 30) {
+                    highlightClass = ' highlight-row';
+                }
+                html += '<li class="' + highlightClass + '"><span class="city-name">' + items[i].city + '</span><span class="city-value">' + items[i].value + '</span></li>';
             }
             dataList.innerHTML = html;
         }
@@ -1970,6 +2021,7 @@
             document.getElementById('btn-cy').classList.remove('active');
             document.getElementById('btn-fw').classList.remove('active');
             document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
         });
 
         document.getElementById('btn-jjj').addEventListener('click', function() {
@@ -1980,6 +2032,7 @@
             document.getElementById('btn-cy').classList.remove('active');
             document.getElementById('btn-fw').classList.remove('active');
             document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
         });
 
         document.getElementById('btn-cy').addEventListener('click', function() {
@@ -1990,6 +2043,7 @@
             document.getElementById('btn-jjj').classList.remove('active');
             document.getElementById('btn-fw').classList.remove('active');
             document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
         });
 
         document.getElementById('btn-fw').addEventListener('click', function() {
@@ -2000,6 +2054,7 @@
             document.getElementById('btn-jjj').classList.remove('active');
             document.getElementById('btn-cy').classList.remove('active');
             document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
         });
 
         document.getElementById('btn-csj').addEventListener('click', function() {
@@ -2010,47 +2065,59 @@
             document.getElementById('btn-jjj').classList.remove('active');
             document.getElementById('btn-cy').classList.remove('active');
             document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+        });
+
+        document.getElementById('btn-zsj').addEventListener('click', function() {
+            renderMap(zsjCities, 'ZSJ');
+            updateTitle('ZSJ');
+            this.classList.add('active');
+            document.getElementById('btn-all').classList.remove('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
         });
 
         document.getElementById('btn-pm25').addEventListener('click', function() {
             currentDataType = 'PM25';
             this.classList.add('active');
             document.getElementById('btn-o3').classList.remove('active');
-            var activeRegionBtn = document.querySelector('.config-panel .btn-group:first-child .btn.active');
-            var regionType = 'all';
-            if (activeRegionBtn) {
-                var btnText = activeRegionBtn.textContent;
-                if (btnText === 'JJJ') regionType = 'JJJ';
-                else if (btnText === 'CY') regionType = 'CY';
-                else if (btnText === 'FW') regionType = 'FW';
-                else if (btnText === 'CSJ') regionType = 'CSJ';
-            }
-            renderMap(regionType !== 'all' ? window[regionType.toLowerCase() + 'Cities'] : null, regionType);
-            updateTitle(regionType);
+            
+            document.getElementById('btn-all').classList.add('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.add('hidden');
+            
+            renderMap(null, 'all');
+            updateTitle('all');
         });
 
         document.getElementById('btn-o3').addEventListener('click', function() {
             currentDataType = 'O3';
             this.classList.add('active');
             document.getElementById('btn-pm25').classList.remove('active');
-            var activeRegionBtn = document.querySelector('.config-panel .btn-group:first-child .btn.active');
-            var regionType = 'all';
-            if (activeRegionBtn) {
-                var btnText = activeRegionBtn.textContent;
-                if (btnText === 'JJJ') regionType = 'JJJ';
-                else if (btnText === 'CY') regionType = 'CY';
-                else if (btnText === 'FW') regionType = 'FW';
-                else if (btnText === 'CSJ') regionType = 'CSJ';
-            }
-            renderMap(regionType !== 'all' ? window[regionType.toLowerCase() + 'Cities'] : null, regionType);
-            updateTitle(regionType);
+            
+            document.getElementById('btn-all').classList.add('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('hidden');
+            
+            renderMap(null, 'all');
+            updateTitle('all');
         });
 
         document.getElementById('btn-roam-toggle').addEventListener('click', function() {
             roamEnabled = !roamEnabled;
             
             chart.setOption({
-                geo: [{
+                series: [{
                     roam: roamEnabled
                 }]
             });
@@ -2058,10 +2125,10 @@
             var paramsPanel = document.getElementById('map-params');
             if (roamEnabled) {
                 paramsPanel.classList.remove('hidden');
-                var geoOption = chart.getOption().geo[0];
+                var seriesOption = chart.getOption().series[0];
                 var region = document.querySelector('.btn.active').textContent;
                 if (region === '全部城市') region = '全国';
-                updateParamsPanel(region, geoOption.zoom, geoOption.center, geoOption.layoutCenter, geoOption.layoutSize);
+                updateParamsPanel(region, seriesOption.zoom, seriesOption.center, seriesOption.layoutCenter, seriesOption.layoutSize);
                 this.textContent = '关闭拖动和缩放';
                 this.classList.add('active');
             } else {
@@ -2112,6 +2179,12 @@
                     show: legendVisible
                 }
             });
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-stroke-settings').addEventListener('click', function() {
+            var strokePanel = document.querySelector('.stroke-settings');
+            strokePanel.classList.toggle('hidden');
             this.classList.toggle('active');
         });
 
