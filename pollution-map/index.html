@@ -1398,10 +1398,16 @@
             var config = colorConfigs[currentDataType];
 
             var mapData = [];
+            var addedCities = {};
             features.forEach(function(feature) {
                 var name = feature.properties.output_City || feature.properties.name || '';
                 name = normalizeCityName(name);
                 if (!name) return;
+                
+                if (addedCities[name]) {
+                    return;
+                }
+                addedCities[name] = true;
                 
                 var value = null;
                 if (currentData[name] !== undefined && currentData[name] !== null) {
