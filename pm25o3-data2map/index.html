@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国PM2.5浓度地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
+        }
+
+/* 全局共用样式 - 导航栏样式 */
+.navbar {
+    background: linear-gradient(135deg, #213bd1 0%, #0c66f5 100%);
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.navbar h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    font-weight: 600;
+    text-align: left;
+    color: white;
+}
+
+.navbar .back-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.navbar .back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            justify-content: flex-start;
+            padding: 20px;
+            gap: 20px;
+        }
+        .config-panel {
+            width: 220px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .map-wrapper {
+            position: relative;
+            width: 750px;
+            height: 750px;
+            flex-shrink: 0;
+        }
+        .data-panel {
+            width: 220px;
+            flex-shrink: 0;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 750px;
+        }
+        .data-panel h4 {
+            margin: 0 0 10px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            color: #333;
+        }
+        .data-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+        }
+        .data-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+        }
+        .data-list li:last-child {
+            border-bottom: none;
+        }
+        .data-list .city-name {
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+        .data-list .city-value {
+            color: #333;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .whiteblock {
+            width: 100px;
+            height: 150px;
+            background: #fff;
+            /* border: 1px solid #000; */
+            position: absolute;
+            top: 380px;
+            right: 0;
+        }
+        .map-title {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 24px;
+            color: #333;
+            font-weight: 600;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .map-title .pm25-subscript {
+            display: inline-block;
+            font-size: 12px;
+            margin-top: 8px;
+            vertical-align: middle;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .boundary-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #666;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .btn {
+            padding: 10px 15px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #409eff;
+            color: #fff;
+            transition: background 0.3s;
+            text-align: center;
+        }
+        .btn:hover {
+            background: #66b1ff;
+        }
+        .btn.active {
+            background: #67c23a;
+        }
+        .ec-map-sea,
+        .ec-map-jd {
+            display: none !important;
+        }
+        .zoom-control {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 4px;
+        }
+        .zoom-control .btn {
+            flex: 1;
+            padding:5px;
+        }
+        #zoom-value {
+            font-size: 14px;
+            color: #666;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .wuzhong{
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 4px;
+        }
+        .stroke-settings {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }     
+        .stroke-settings h4 {
+            font-size: 14px;
+            color: #333;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .setting-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .setting-group label {
+            font-size: 12px;
+            color: #666;
+            white-space: nowrap;
+        }
+        .setting-group input[type="color"] {
+            width: 40px;
+            height: 28px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .setting-group input[type="number"] {
+            width: 70px;
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .btn-confirm {
+            width: 100%;
+            margin-top: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+        }
+        .btn-confirm:hover {
+            background: #45a049;
+        }
+        
+        .map-legend {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 100;
+            width: 380px;
+            height: auto;
+        }
+        .map-legend.full-mode {
+            left: 20px;
+            bottom: 120px;
+            right: auto;
+        }
+        .map-logo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            height: 60px;
+            width: auto;
+        }
+        
+        .map-params {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 200;
+            min-width: 200px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .map-params h5 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+        }
+        .map-params p {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+        .map-params strong {
+            color: #666;
+        }
+        .hidden {
+            display: none;
+        }
+        .params-divider {
+            height: 1px;
+            background: #eee;
+            margin: 10px 0;
+        }
+        .highlight-row {
+            background-color: rgba(158, 238, 104, 0.3);
+        }
+        .hidden-btn {
+            display: none;
+        }
+        /* ========== 新增数据处理弹窗样式 ========== */
+.modal-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-wrap {
+    width: calc(100vw - 80px);
+    height: calc(100vh - 80px);
+    background: #fff;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #333;
+    color: #fff;
+}
+.modal-close {
+    background: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+    cursor: pointer;
+}
+.modal-iframe-box {
+    flex: 1;
+}
+.modal-iframe-box iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+        
+    </style>
+</head>
+<body>
+        <div class="navbar">
+        <h1>气质地图PM25/O3数据地图生成</h1>
+        <button class="back-btn" onclick="window.location.href='../index.html'">返回工具集</button>
+    </div>
+    <div class="container">
+        <div class="config-panel">
+            <div class="btn-group">
+                <button class="btn" id="btnDataHandle">数据处理</button>
+               <button class="btn" id="btn-csv-select">选择CSV文件</button>
+                <button class="btn" id="btn-download">下载图片</button>
+            </div>
+            <div class="btn-group wuzhong">
+                <button class="btn active" id="btn-pm25">PM2.5</button>
+                <button class="btn" id="btn-o3">O3</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn active" id="btn-all">全国</button>
+                <button class="btn" id="btn-jjj">京津冀及周边地区</button>
+                <button class="btn" id="btn-cy">成渝地区</button>
+                <button class="btn" id="btn-fw">汾渭平原</button>
+                <button class="btn" id="btn-csj">长三角地区</button>
+                <button class="btn hidden" id="btn-zsj">珠三角地区</button>
+
+            </div>
+
+            <div class="zoom-control">
+                <button class="btn" id="btn-roam-toggle">开启拖动和缩放</button>
+                <button class="btn" id="btn-legend">图例</button>
+                <button class="btn" id="btn-stroke-settings">描边设置</button>
+                <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+            </div>
+            <div class="stroke-settings hidden">
+                <h4>描边设置</h4>
+                <div class="setting-group">
+                    <label>南海诸岛颜色:</label>
+                    <input type="color" id="nanhai-color" value="#969696">
+                </div>
+                <div class="setting-group">
+                    <label>南海诸岛粗细:</label>
+                    <input type="number" id="nanhai-width" value="2.0" min="0" max="10" step="0.1">
+                </div>
+                <div class="setting-group">
+                    <label>台湾海南颜色:</label>
+                    <input type="color" id="twhn-color" value="#FFFFFF">
+                </div>
+                <div class="setting-group">
+                    <label>台湾海南粗细:</label>
+                    <input type="number" id="twhn-width" value="1.0" min="0" max="10" step="0.1">
+                </div>
+                <button class="btn btn-confirm" id="btn-apply-stroke">确定</button>
+            </div>
+        </div>
+        <div class="map-wrapper">
+            <div id="map">
+                <div class="loading">加载中...</div>
+            </div>
+            <div class="whiteblock" id="whiteblock"></div><!--用于遮盖南海区域的框的-->
+            <div class="map-title" id="map-title"></div>
+            <div class="map-params hidden" id="map-params">
+                <h5 id="params-region">全国</h5>
+                <p><strong>- zoom:</strong> <span id="params-zoom">1</span></p>
+                <p><strong>- center:</strong> <span id="params-center">[110, 30]</span></p>
+                <p><strong>- layoutCenter:</strong> <span id="params-layout-center">[600, 380]</span></p>
+                <p><strong>- layoutSize:</strong> <span id="params-layout-size">720</span></p>
+                <div class="params-divider"></div>
+                <h5>点击区域</h5>
+                <p><strong>- name:</strong> <span id="params-click-name">点击地图区域</span></p>
+                <p><strong>- adcode:</strong> <span id="params-click-adcode">-</span></p>
+                <p><strong>- CityCode:</strong> <span id="params-click-citycode">-</span></p>
+                <p><strong>- 中心:</strong> <span id="params-click-center">-</span></p>
+                <p><strong>- 范围:</strong> <span id="params-click-bbox">-</span></p>
+                <p><strong>- 索引:</strong> <span id="params-click-index">-</span></p>
+            </div>
+        </div>
+        <div class="data-panel" id="data-panel">
+            <h4>数据列表</h4>
+            <ul class="data-list" id="data-list">
+                <li>加载中...</li>
+            </ul>
+        </div>
+    </div>
+ <div id="modalContainer"></div>
+    <script>
+        var chart = echarts.init(document.getElementById('map'));
+        var pm25Data = {};
+        var o3Data = {};
+        var currentDataType = 'PM25';
+        var regionType = 'all';
+        var colorConfigs = {
+            PM25: {
+                pieces: [
+                    { min: 0, max: 5, color: 'rgba(158, 238, 104, 1)', label: '0-5' },
+                    { min: 5.000001, max: 10, color: 'rgba(202, 234, 115, 1)', label: '6-10' },
+                    { min: 10.000001, max: 15, color: 'rgba(223, 236, 120, 1)', label: '11-15' },
+                    { min: 15.000001, max: 25, color: 'rgba(255, 247, 160, 1)', label: '16-25' },
+                    { min: 25.000001, max: 30, color: 'rgba(255, 247, 160, 1)', label: '26-30' },
+                    { min: 30.000001, max: 59, color: 'rgba(250, 178, 72, 1)', label: '31-59' },
+                    { min: 59.000001, max: 300, color: 'rgba(239, 115, 58, 1)', label: '60-300' }
+                ],
+                min: 0,
+                max: 300,
+                title: 'PM<span class="pm25-subscript">2.5</span>浓度',
+                unit: 'μg/m³'
+            },
+            O3: {
+                pieces: [
+                    { min: 0, max: 60, color: '#9EEE68', label: '0-60' },
+                    { min: 60.000001, max: 100, color: '#CAEA73', label: '61-100' },
+                    { min: 100.000001, max: 120, color: '#DFEC78', label: '101-120' },
+                    { min: 120.000001, max: 160, color: '#ECDA76', label: '121-160' },
+                    { min: 160.000001, max: 190, color: '#F0BB53', label: '161-190' },
+                    { min: 190.000001, max: 220, color: '#EF733A', label: '191-220' },
+                    { min: 220.000001, max: 600, color: '#D42028', label: '221-600' }
+                ],
+                min: 0,
+                max: 600,
+                title: 'O₃浓度',
+                unit: 'μg/m³'
+            }
+        };
+        var mergedGeoData = null;
+        var nanhaiGeoData = null;
+        var twhnGeoData = null;
+        var legendVisible = false;
+        var nanhaiStrokeColor = '#969696';
+        var nanhaiStrokeWidth = 2.0;
+        var twhnStrokeColor = '#FFFFFF';
+        var twhnStrokeWidth = 1.0;
+        var roamEnabled = false;
+        var showLabel = false;
+
+        function convertGeoDataToBJ54(geoData) {
+            var offsetX = 500000;
+            var offsetY = 3800000;
+            var scale = 0.000015;
+            
+            function convertPoint(lng, lat) {
+                var [B54, L54] = GaussProjection.wgs84ToBj54(lat, lng);
+                var [X, Y] = GaussProjection.gaussForward(B54, L54, 110);
+                var normX = (Y - offsetX) * scale;
+                var normY = -(X - offsetY) * scale;
+                return [normX, normY];
+            }
+            
+            function convertCoords(coords) {
+                if (typeof coords[0] === 'number') {
+                    return convertPoint(coords[0], coords[1]);
+                }
+                for (var i = 0; i < coords.length; i++) {
+                    coords[i] = convertCoords(coords[i]);
+                }
+                return coords;
+            }
+            
+            geoData.features.forEach(function(feature) {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    convertCoords(feature.geometry.coordinates);
+                }
+            });
+        }
+        
+        var GaussProjection = {
+            krasovsky: {
+                a: 6378245,
+                f: 1 / 298.3,
+                e2: 0.006693421622966,
+                e4: 0.000044605166389,
+                e6: 0.000000298897949,
+                e8: 0.000000001993946
+            },
+            wgs84: {
+                a: 6378137,
+                f: 1 / 298.257223563,
+                e2: 0.00669437999014,
+                e4: 0.000044618949,
+                e6: 0.0000002983,
+                e8: 0.00000000199
+            },
+            sevenParams: {
+                dx: -108,
+                dy: 56,
+                dz: 103,
+                rx: 0,
+                ry: 0,
+                rz: 0,
+                m: 1
+            },
+            deg2rad: function(deg) {
+                return deg * Math.PI / 180;
+            },
+            rad2deg: function(rad) {
+                return rad * 180 / Math.PI;
+            },
+            wgs84ToBj54: function(lat, lng) {
+                var params = this.sevenParams;
+                var radB = this.deg2rad(lat);
+                var radL = this.deg2rad(lng);
+                
+                var sinB = Math.sin(radB);
+                var cosB = Math.cos(radB);
+                var sinL = Math.sin(radL);
+                var cosL = Math.cos(radL);
+                
+                var a = this.wgs84.a;
+                var e2 = this.wgs84.e2;
+                
+                var N = a / Math.sqrt(1 - e2 * sinB * sinB);
+                var X = N * cosB * cosL;
+                var Y = N * cosB * sinL;
+                var Z = N * (1 - e2) * sinB;
+                
+                var rx_rad = this.deg2rad(params.rx / 3600);
+                var ry_rad = this.deg2rad(params.ry / 3600);
+                var rz_rad = this.deg2rad(params.rz / 3600);
+                
+                var X54 = params.dx + X + (-rz_rad * Y + ry_rad * Z) + params.m * X;
+                var Y54 = params.dy + Y + (rz_rad * X - rx_rad * Z) + params.m * Y;
+                var Z54 = params.dz + Z + (-ry_rad * X + rx_rad * Y) + params.m * Z;
+                
+                var a54 = this.krasovsky.a;
+                var e2_54 = this.krasovsky.e2;
+                
+                var p = Math.sqrt(X54 * X54 + Y54 * Y54);
+                var B54 = Math.atan(Z54 / (p * (1 - e2_54)));
+                
+                var N54, sinB54;
+                for (var i = 0; i < 5; i++) {
+                    sinB54 = Math.sin(B54);
+                    N54 = a54 / Math.sqrt(1 - e2_54 * sinB54 * sinB54);
+                    B54 = Math.atan((Z54 + N54 * e2_54 * sinB54) / p);
+                }
+                
+                sinB54 = Math.sin(B54);
+                N54 = a54 / Math.sqrt(1 - e2_54 * sinB54 * sinB54);
+                var L54 = Math.atan(Y54 / X54);
+                
+                if (X54 < 0 && Y54 >= 0) L54 += Math.PI;
+                if (X54 < 0 && Y54 < 0) L54 -= Math.PI;
+                
+                return [this.rad2deg(B54), this.rad2deg(L54)];
+            },
+            bj54ToWgs84: function(B54, L54) {
+                var params = this.sevenParams;
+                var radB = this.deg2rad(B54);
+                var radL = this.deg2rad(L54);
+                
+                var sinB = Math.sin(radB);
+                var cosB = Math.cos(radB);
+                var sinL = Math.sin(radL);
+                var cosL = Math.cos(radL);
+                
+                var a54 = this.krasovsky.a;
+                var e2_54 = this.krasovsky.e2;
+                
+                var N54 = a54 / Math.sqrt(1 - e2_54 * sinB * sinB);
+                var X54 = N54 * cosB * cosL;
+                var Y54 = N54 * cosB * sinL;
+                var Z54 = N54 * (1 - e2_54) * sinB;
+                
+                var rx_rad = this.deg2rad(params.rx / 3600);
+                var ry_rad = this.deg2rad(params.ry / 3600);
+                var rz_rad = this.deg2rad(params.rz / 3600);
+                
+                var X = X54 - params.dx - (-rz_rad * Y54 + ry_rad * Z54) - params.m * X54;
+                var Y = Y54 - params.dy - (rz_rad * X54 - rx_rad * Z54) - params.m * Y54;
+                var Z = Z54 - params.dz - (-ry_rad * X54 + rx_rad * Y54) - params.m * Z54;
+                
+                var a = this.wgs84.a;
+                var e2 = this.wgs84.e2;
+                
+                var p = Math.sqrt(X * X + Y * Y);
+                var lat = Math.atan(Z / (p * (1 - e2)));
+                
+                var N, sinB;
+                for (var i = 0; i < 5; i++) {
+                    sinB = Math.sin(lat);
+                    N = a / Math.sqrt(1 - e2 * sinB * sinB);
+                    lat = Math.atan((Z + N * e2 * sinB) / p);
+                }
+                
+                sinB = Math.sin(lat);
+                N = a / Math.sqrt(1 - e2 * sinB * sinB);
+                var lng = Math.atan(Y / X);
+                
+                if (X < 0 && Y >= 0) lng += Math.PI;
+                if (X < 0 && Y < 0) lng -= Math.PI;
+                
+                return [this.rad2deg(lng), this.rad2deg(lat)];
+            },
+            gaussForward: function(B, L, L0) {
+                var a = this.krasovsky.a;
+                var e2 = this.krasovsky.e2;
+                var e4 = this.krasovsky.e4;
+                var e6 = this.krasovsky.e6;
+                var e8 = this.krasovsky.e8;
+                
+                var radB = this.deg2rad(B);
+                var radL = this.deg2rad(L);
+                var radL0 = this.deg2rad(L0);
+                
+                var l = radL - radL0;
+                
+                var sinB = Math.sin(radB);
+                var cosB = Math.cos(radB);
+                var tanB = Math.tan(radB);
+                var cotB = cosB / sinB;
+                
+                var N = a / Math.sqrt(1 - e2 * sinB * sinB);
+                var T = tanB * tanB;
+                var C = e2 * cosB * cosB / (1 - e2);
+                var A = l * cosB;
+                var A2 = A * A;
+                var A3 = A2 * A;
+                var A4 = A3 * A;
+                var A5 = A4 * A;
+                var A6 = A5 * A;
+                
+                var m0 = a * ((1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * radB
+                    - (3 * e2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * Math.sin(2 * radB)
+                    + (15 * e4 / 256 + 45 * e6 / 1024) * Math.sin(4 * radB)
+                    - (35 * e6 / 3072) * Math.sin(6 * radB));
+                
+                var x = m0 + N * tanB * (A2 / 2 + (5 - T + 9 * C + 4 * C * C) * A4 / 24
+                    + (61 - 58 * T + T * T + 270 * C - 330 * C * T) * A6 / 720);
+                
+                var y = N * (A + (1 - T + C) * A3 / 6
+                    + (5 - 18 * T + T * T + 14 * C - 58 * C * T) * A5 / 120);
+                
+                y += 500000;
+                
+                return [x, y];
+            },
+            gaussInverse: function(x, y, L0) {
+                var a = this.krasovsky.a;
+                var e2 = this.krasovsky.e2;
+                var e4 = this.krasovsky.e4;
+                var e6 = this.krasovsky.e6;
+                var e8 = this.krasovsky.e8;
+                
+                y -= 500000;
+                
+                var m0 = x;
+                var B0 = m0 / (a * (1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256));
+                
+                var dB, sin2B;
+                for (var i = 0; i < 5; i++) {
+                    sin2B = Math.sin(2 * B0);
+                    dB = (m0 - a * ((1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * B0
+                        - (3 * e2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * sin2B
+                        + (15 * e4 / 256 + 45 * e6 / 1024) * Math.sin(4 * B0)
+                        - (35 * e6 / 3072) * Math.sin(6 * B0)))
+                        / (a * cos(B0));
+                    B0 += dB;
+                }
+                
+                var radB0 = B0;
+                var sinB0 = Math.sin(radB0);
+                var cosB0 = Math.cos(radB0);
+                var tanB0 = Math.tan(radB0);
+                var N0 = a / Math.sqrt(1 - e2 * sinB0 * sinB0);
+                var T0 = tanB0 * tanB0;
+                var C0 = e2 * cosB0 * cosB0 / (1 - e2);
+                var M0 = a * (1 - e2) / Math.pow(1 - e2 * sinB0 * sinB0, 1.5);
+                
+                var D = y / N0;
+                var D2 = D * D;
+                var D3 = D2 * D;
+                var D4 = D3 * D;
+                var D5 = D4 * D;
+                var D6 = D5 * D;
+                
+                var B = radB0 - N0 * tanB0 / M0 * (D2 / 2 - (5 + 3 * T0 + 10 * C0 - 4 * C0 * C0 - 9 * e2) * D4 / 24
+                    + (61 + 90 * T0 + 298 * C0 + 45 * T0 * T0 - 252 * e2 - 3 * C0 * C0) * D6 / 720);
+                
+                var L = this.deg2rad(L0) + D / cosB0 * (1 - (1 + 2 * T0 + C0) * D2 / 6
+                    + (5 + 6 * C0 + 28 * T0 - 3 * C0 * C0 + 8 * e2 + 24 * T0 * T0) * D4 / 120);
+                
+                return [this.rad2deg(B), this.rad2deg(L)];
+            },
+            getProjection: function(centralMeridian) {
+                var self = this;
+                
+                var refPoint = self.wgs84ToBj54(35, 110);
+                var refProj = self.gaussForward(refPoint[0], refPoint[1], centralMeridian);
+                var refX = refProj[0];
+                var refY = refProj[1];
+                var scale = 0.000002;
+                
+                return {
+                    project: function(point) {
+                        var lng = point[0];
+                        var lat = point[1];
+                        
+                        var [B54, L54] = self.wgs84ToBj54(lat, lng);
+                        var [X, Y] = self.gaussForward(B54, L54, centralMeridian);
+                        
+                        var normX = (Y - refY) * scale;
+                        var normY = -(X - refX) * scale;
+                        
+                        return [normX, normY];
+                    },
+                    unproject: function(px) {
+                        var Y = px[0] / scale + refY;
+                        var X = -(px[1] / scale) + refX;
+                        
+                        var [B54, L54] = self.gaussInverse(X, Y, centralMeridian);
+                        var [lng, lat] = self.bj54ToWgs84(B54, L54);
+                        
+                        return [lng, lat];
+                    }
+                };
+            }
+        };
+
+        var jjjCities = [
+            '商丘市', '周口市', '济宁市', '泰安市', '濮阳市', '菏泽市', '潍坊市', '日照市',
+            '许昌市', '漯河市', '济南市', '聊城市', '三门峡市', '平顶山市', '邯郸市',
+            '秦皇岛市', '东营市', '石家庄市', '滨州市', '邢台市', '沧州市', '衡水市',
+            '安阳市', '郑州市', '枣庄市', '焦作市', '临沂市', '洛阳市', '淄博市',
+            '保定市', '北京市', '德州市', '开封市', '唐山市', '新乡市', '廊坊市',
+            '天津市', '鹤壁市'
+        ];
+
+        var cyCities = [
+            '广安市', '重庆市', '雅安市', '南充市', '达州市', '泸州市', '遂宁市', '内江市',
+            '资阳市', '自贡市', '宜宾市', '乐山市', '绵阳市', '成都市', '眉山市', '德阳市'
+        ];
+
+        var fwCities = [
+            '铜川市', '宝鸡市', '运城市', '长治市', '晋城市', '西安市', '渭南市', '咸阳市',
+            '吕梁市', '晋中市', '太原市', '临汾市', '阳泉市'
+        ];
+
+        var csjCities = [
+            '亳州市', '舟山市', '六安市', '宁波市', '盐城市', '连云港市', '宿迁市', '淮安市',
+            '宿州市', '绍兴市', '嘉兴市', '徐州市', '上海市', '淮北市', '南通市', '淮南市',
+            '合肥市', '杭州市', '南京市', '阜阳市', '苏州市', '蚌埠市', '泰州市', '湖州市',
+            '无锡市', '常州市', '芜湖市', '扬州市', '滁州市', '镇江市', '马鞍山市'
+        ];
+
+        var zsjCities = [
+            '肇庆市', '广州市', '惠州市', '佛山市', '深圳市', '珠海市', '江门市', '中山市', '东莞市'
+        ];
+
+        var cityAdcodeMap = {
+            '110000': '北京市',
+            '120000': '天津市',
+            '130000': '河北省',
+            '130100': '石家庄市',
+            '130200': '唐山市',
+            '130300': '秦皇岛市',
+            '130400': '邯郸市',
+            '130500': '邢台市',
+            '130600': '保定市',
+            '130700': '张家口市',
+            '130800': '承德市',
+            '130900': '沧州市',
+            '131000': '廊坊市',
+            '131100': '衡水市',
+            '140000': '山西省',
+            '140100': '太原市',
+            '140200': '大同市',
+            '140300': '阳泉市',
+            '140400': '长治市',
+            '140500': '晋城市',
+            '140600': '朔州市',
+            '140700': '晋中市',
+            '140800': '运城市',
+            '140900': '忻州市',
+            '141000': '临汾市',
+            '141100': '吕梁市',
+            '150000': '内蒙古自治区',
+            '150100': '呼和浩特市',
+            '150200': '包头市',
+            '150300': '乌海市',
+            '150400': '赤峰市',
+            '150500': '通辽市',
+            '150600': '鄂尔多斯市',
+            '150700': '呼伦贝尔市',
+            '150800': '巴彦淖尔市',
+            '150900': '乌兰察布市',
+            '152200': '兴安盟',
+            '152500': '锡林郭勒盟',
+            '152900': '阿拉善盟',
+            '210000': '辽宁省',
+            '210100': '沈阳市',
+            '210200': '大连市',
+            '210300': '鞍山市',
+            '210400': '抚顺市',
+            '210500': '本溪市',
+            '210600': '丹东市',
+            '210700': '锦州市',
+            '210800': '营口市',
+            '210900': '阜新市',
+            '211000': '辽阳市',
+            '211100': '盘锦市',
+            '211200': '铁岭市',
+            '211300': '朝阳市',
+            '211400': '葫芦岛市',
+            '220000': '吉林省',
+            '220100': '长春市',
+            '220200': '吉林市',
+            '220300': '四平市',
+            '220400': '辽源市',
+            '220500': '通化市',
+            '220600': '白山市',
+            '220700': '松原市',
+            '220800': '白城市',
+            '222400': '延边朝鲜族自治州',
+            '230000': '黑龙江省',
+            '230100': '哈尔滨市',
+            '230200': '齐齐哈尔市',
+            '230300': '鸡西市',
+            '230400': '鹤岗市',
+            '230500': '双鸭山市',
+            '230600': '大庆市',
+            '230700': '伊春市',
+            '230800': '佳木斯市',
+            '230900': '七台河市',
+            '231000': '牡丹江市',
+            '231100': '黑河市',
+            '231200': '绥化市',
+            '232700': '大兴安岭地区',
+            '310000': '上海市',
+            '320000': '江苏省',
+            '320100': '南京市',
+            '320200': '无锡市',
+            '320300': '徐州市',
+            '320400': '常州市',
+            '320500': '苏州市',
+            '320600': '南通市',
+            '320700': '连云港市',
+            '320800': '淮安市',
+            '320900': '盐城市',
+            '321000': '扬州市',
+            '321100': '镇江市',
+            '321200': '泰州市',
+            '321300': '宿迁市',
+            '330000': '浙江省',
+            '330100': '杭州市',
+            '330200': '宁波市',
+            '330300': '温州市',
+            '330400': '嘉兴市',
+            '330500': '湖州市',
+            '330600': '绍兴市',
+            '330700': '金华市',
+            '330800': '衢州市',
+            '330900': '舟山市',
+            '331000': '台州市',
+            '331100': '丽水市',
+            '340000': '安徽省',
+            '340100': '合肥市',
+            '340200': '芜湖市',
+            '340300': '蚌埠市',
+            '340400': '淮南市',
+            '340500': '马鞍山市',
+            '340600': '淮北市',
+            '340700': '铜陵市',
+            '340800': '安庆市',
+            '341000': '黄山市',
+            '341100': '滁州市',
+            '341200': '阜阳市',
+            '341300': '宿州市',
+            '341500': '六安市',
+            '341600': '亳州市',
+            '341700': '池州市',
+            '341800': '宣城市',
+            '350000': '福建省',
+            '350100': '福州市',
+            '350200': '厦门市',
+            '350300': '莆田市',
+            '350400': '三明市',
+            '350500': '泉州市',
+            '350600': '漳州市',
+            '350700': '南平市',
+            '350800': '龙岩市',
+            '350900': '宁德市',
+            '360000': '江西省',
+            '360100': '南昌市',
+            '360200': '景德镇市',
+            '360300': '萍乡市',
+            '360400': '九江市',
+            '360500': '新余市',
+            '360600': '鹰潭市',
+            '360700': '赣州市',
+            '360800': '吉安市',
+            '360900': '宜春市',
+            '361000': '抚州市',
+            '361100': '上饶市',
+            '370000': '山东省',
+            '370100': '济南市',
+            '370200': '青岛市',
+            '370300': '淄博市',
+            '370400': '枣庄市',
+            '370500': '东营市',
+            '370600': '烟台市',
+            '370700': '潍坊市',
+            '370800': '济宁市',
+            '370900': '泰安市',
+            '371000': '威海市',
+            '371100': '日照市',
+            '371200': '莱芜市',
+            '371300': '临沂市',
+            '371400': '德州市',
+            '371500': '聊城市',
+            '371600': '滨州市',
+            '371700': '菏泽市',
+            '410000': '河南省',
+            '410100': '郑州市',
+            '410200': '开封市',
+            '410300': '洛阳市',
+            '410400': '平顶山市',
+            '410500': '安阳市',
+            '410600': '鹤壁市',
+            '410700': '新乡市',
+            '410800': '焦作市',
+            '410900': '濮阳市',
+            '411000': '许昌市',
+            '411100': '漯河市',
+            '411200': '三门峡市',
+            '411300': '南阳市',
+            '411400': '商丘市',
+            '411500': '信阳市',
+            '411600': '周口市',
+            '411700': '驻马店市',
+            '420000': '湖北省',
+            '420100': '武汉市',
+            '420200': '黄石市',
+            '420300': '十堰市',
+            '420500': '宜昌市',
+            '420600': '襄阳市',
+            '420700': '鄂州市',
+            '420800': '荆门市',
+            '420900': '孝感市',
+            '421000': '荆州市',
+            '421100': '黄冈市',
+            '421200': '咸宁市',
+            '421300': '随州市',
+            '422800': '恩施土家族苗族自治州',
+            '430000': '湖南省',
+            '430100': '长沙市',
+            '430200': '株洲市',
+            '430300': '湘潭市',
+            '430400': '衡阳市',
+            '430500': '邵阳市',
+            '430600': '岳阳市',
+            '430700': '常德市',
+            '430800': '张家界市',
+            '430900': '益阳市',
+            '431000': '郴州市',
+            '431100': '永州市',
+            '431200': '怀化市',
+            '431300': '娄底市',
+            '433100': '湘西土家族苗族自治州',
+            '440000': '广东省',
+            '440100': '广州市',
+            '440200': '韶关市',
+            '440300': '深圳市',
+            '440400': '珠海市',
+            '440500': '汕头市',
+            '440600': '佛山市',
+            '440700': '江门市',
+            '440800': '湛江市',
+            '440900': '茂名市',
+            '441200': '肇庆市',
+            '441300': '惠州市',
+            '441400': '梅州市',
+            '441500': '汕尾市',
+            '441600': '河源市',
+            '441700': '阳江市',
+            '441800': '清远市',
+            '441900': '东莞市',
+            '442000': '中山市',
+            '445100': '潮州市',
+            '445200': '揭阳市',
+            '445300': '云浮市',
+            '450000': '广西壮族自治区',
+            '450100': '南宁市',
+            '450200': '柳州市',
+            '450300': '桂林市',
+            '450400': '梧州市',
+            '450500': '北海市',
+            '450600': '防城港市',
+            '450700': '钦州市',
+            '450800': '贵港市',
+            '450900': '玉林市',
+            '451000': '百色市',
+            '451100': '贺州市',
+            '451200': '河池市',
+            '451300': '来宾市',
+            '451400': '崇左市',
+            '460000': '海南省',
+            '460100': '海口市',
+            '460200': '三亚市',
+            '460400': '儋州市',
+            '500000': '重庆市',
+            '510000': '四川省',
+            '510100': '成都市',
+            '510300': '自贡市',
+            '510400': '攀枝花市',
+            '510500': '泸州市',
+            '510600': '德阳市',
+            '510700': '绵阳市',
+            '510800': '广元市',
+            '510900': '遂宁市',
+            '511000': '内江市',
+            '511100': '乐山市',
+            '511300': '南充市',
+            '511400': '眉山市',
+            '511500': '宜宾市',
+            '511600': '广安市',
+            '511700': '达州市',
+            '511800': '雅安市',
+            '511900': '巴中市',
+            '512000': '资阳市',
+            '513200': '阿坝藏族羌族自治州',
+            '513300': '甘孜藏族自治州',
+            '513400': '凉山彝族自治州',
+            '520000': '贵州省',
+            '520100': '贵阳市',
+            '520200': '六盘水市',
+            '520300': '遵义市',
+            '520400': '安顺市',
+            '520500': '毕节市',
+            '520600': '铜仁市',
+            '522300': '黔西南布依族苗族自治州',
+            '522600': '黔东南苗族侗族自治州',
+            '522700': '黔南布依族苗族自治州',
+            '530000': '云南省',
+            '530100': '昆明市',
+            '530300': '曲靖市',
+            '530400': '玉溪市',
+            '530500': '保山市',
+            '530600': '昭通市',
+            '530700': '丽江市',
+            '530800': '普洱市',
+            '530900': '临沧市',
+            '532300': '楚雄彝族自治州',
+            '532500': '红河哈尼族彝族自治州',
+            '532600': '文山壮族苗族自治州',
+            '532800': '西双版纳傣族自治州',
+            '532900': '大理白族自治州',
+            '533100': '德宏傣族景颇族自治州',
+            '533300': '怒江傈僳族自治州',
+            '533400': '迪庆藏族自治州',
+            '540000': '西藏自治区',
+            '540100': '拉萨市',
+            '540200': '日喀则市',
+            '540300': '昌都市',
+            '540400': '林芝市',
+            '540500': '山南市',
+            '540600': '那曲市',
+            '542500': '阿里地区',
+            '610000': '陕西省',
+            '610100': '西安市',
+            '610200': '铜川市',
+            '610300': '宝鸡市',
+            '610400': '咸阳市',
+            '610500': '渭南市',
+            '610600': '延安市',
+            '610700': '汉中市',
+            '610800': '榆林市',
+            '610900': '安康市',
+            '611000': '商洛市',
+            '620000': '甘肃省',
+            '620100': '兰州市',
+            '620200': '嘉峪关市',
+            '620300': '金昌市',
+            '620400': '白银市',
+            '620500': '天水市',
+            '620600': '武威市',
+            '620700': '张掖市',
+            '620800': '平凉市',
+            '620900': '酒泉市',
+            '621000': '庆阳市',
+            '621100': '定西市',
+            '621200': '陇南市',
+            '622900': '临夏回族自治州',
+            '623000': '甘南藏族自治州',
+            '630000': '青海省',
+            '630100': '西宁市',
+            '630200': '海东市',
+            '632200': '海北藏族自治州',
+            '632300': '黄南藏族自治州',
+            '632500': '海南藏族自治州',
+            '632600': '果洛藏族自治州',
+            '632700': '玉树藏族自治州',
+            '632800': '海西蒙古族藏族自治州',
+            '640000': '宁夏回族自治区',
+            '640100': '银川市',
+            '640200': '石嘴山市',
+            '640300': '吴忠市',
+            '640400': '固原市',
+            '640500': '中卫市',
+            '650000': '新疆维吾尔自治区',
+            '650100': '乌鲁木齐市',
+            '650200': '克拉玛依市',
+            '650400': '吐鲁番市',
+            '650500': '哈密市',
+            '652300': '昌吉回族自治州',
+            '652700': '博尔塔拉蒙古自治州',
+            '652800': '巴音郭楞蒙古自治州',
+            '652900': '阿克苏地区',
+            '653000': '克孜勒苏柯尔克孜自治州',
+            '653100': '喀什地区',
+            '653200': '和田地区',
+            '654000': '伊犁哈萨克自治州',
+            '654200': '塔城地区',
+            '654300': '阿勒泰地区',
+            '659001': '石河子市',
+            '659002': '阿拉尔市',
+            '659003': '图木舒克市',
+            '659004': '五家渠市',
+            '659005': '北屯市',
+            '659006': '铁门关市',
+            '659007': '双河市',
+            '659008': '可克达拉市',
+            '659009': '昆玉市',
+            '659010': '胡杨河市'
+        };
+
+        function normalizeCityName(name) {
+            if (!name) return '';
+            return name.trim().replace(/\s+/g, '');
+        }
+        
+        function loadCSV(url, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var text = xhr.responseText;
+                    var result = parseCSV(text);
+                    callback(result);
+                }
+            };
+            xhr.open('GET', url, true);
+            xhr.send();
+        }
+
+        function parseCSV(text) {
+            var lines = text.split('\n');
+            var pm25Result = {};
+            var o3Result = {};
+            for (var i = 1; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (line) {
+                    var parts = line.split(',');
+                    if (parts.length >= 3) {
+                        var city = normalizeCityName(parts[0]);
+                        var pm25Value = parseFloat(parts[1].trim());
+                        var o3Value = parseFloat(parts[2].trim());
+                        if (!isNaN(pm25Value)) {
+                            pm25Result[city] = pm25Value;
+                        }
+                        if (!isNaN(o3Value)) {
+                            o3Result[city] = o3Value;
+                        }
+                    }
+                }
+            }
+            return { pm25: pm25Result, o3: o3Result };
+        }
+
+        function loadCSVFromFile(file, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var text = e.target.result;
+                var result = parseCSV(text);
+                callback(result);
+            };
+            reader.readAsText(file);
+        }
+
+        function loadGeoJSON(url, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    callback(data);
+                }
+            };
+            xhr.open('GET', url, true);
+            xhr.send();
+        }
+
+        var hainanAdcode = '460000';
+        var southSeaIslandsAdcode = '100000_JD';
+
+        function calculateBoundingBox(features, includeAdditional) {
+            var minLng = Infinity, maxLng = -Infinity;
+            var minLat = Infinity, maxLat = -Infinity;
+            
+            function processCoordinates(coords) {
+                if (Array.isArray(coords)) {
+                    if (coords.length === 2 && typeof coords[0] === 'number') {
+                        var lng = coords[0];
+                        var lat = coords[1];
+                        if (lng < minLng) minLng = lng;
+                        if (lng > maxLng) maxLng = lng;
+                        if (lat < minLat) minLat = lat;
+                        if (lat > maxLat) maxLat = lat;
+                    } else {
+                        for (var i = 0; i < coords.length; i++) {
+                            processCoordinates(coords[i]);
+                        }
+                    }
+                }
+            }
+            
+            for (var i = 0; i < features.length; i++) {
+                var geometry = features[i].geometry;
+                if (geometry && geometry.coordinates) {
+                    processCoordinates(geometry.coordinates);
+                }
+            }
+            
+            if (includeAdditional !== false) {
+                if (nanhaiGeoData && nanhaiGeoData.features) {
+                    for (var j = 0; j < nanhaiGeoData.features.length; j++) {
+                        var nhGeometry = nanhaiGeoData.features[j].geometry;
+                        if (nhGeometry && nhGeometry.coordinates) {
+                            processCoordinates(nhGeometry.coordinates);
+                        }
+                    }
+                }
+                
+                if (twhnGeoData && twhnGeoData.features) {
+                    for (var k = 0; k < twhnGeoData.features.length; k++) {
+                        var twGeometry = twhnGeoData.features[k].geometry;
+                        if (twGeometry && twGeometry.coordinates) {
+                            processCoordinates(twGeometry.coordinates);
+                        }
+                    }
+                }
+            }
+            
+            return {
+                minLng: minLng,
+                maxLng: maxLng,
+                minLat: minLat,
+                maxLat: maxLat,
+                centerLng: (minLng + maxLng) / 2,
+                centerLat: (minLat + maxLat) / 2,
+                width: maxLng - minLng,
+                height: maxLat - minLat
+            };
+        }
+
+        function calculateZoomAndCenter(features, containerWidth, containerHeight, regionType) {
+            var includeAdditional = !regionType || regionType === '';
+            var bbox = calculateBoundingBox(features, includeAdditional);
+            
+            var zoom =0.95;
+            var layoutSize = 720;
+            var layoutCenter = [600, 380];
+            var center = [110, 30];
+            
+            if (regionType === 'JJJ') {
+                zoom = 0.75;
+                center = [83.1573, -15.1000];
+                layoutCenter = [450.00, 350.00];
+                layoutSize = 2160.00;
+            } else if (regionType === 'CY') {
+                zoom = 1.00;
+                center = [35.1974, 28.3002];
+                layoutCenter = [400.00, 450.00];
+                layoutSize = 2700.00;
+            } else if (regionType === 'FW') {
+                zoom = 1.90;
+                center = [55.3278, -8.6602];
+                layoutCenter = [420.00, 380.00];
+                layoutSize = 1440.82;
+            } else if (regionType === 'CSJ') {
+                zoom = 0.83;
+                center = [113.0995, 16.8172];
+                layoutCenter = [680.00, 450.00];
+                layoutSize = 1980.00;
+            } else if (regionType === 'ZSJ') {
+                zoom = 5.15;
+                center = [76.5517, 63.8435];
+                layoutCenter = [600.00, 380.00];
+                layoutSize = 720.00;
+            }
+            
+            return {
+                zoom: zoom,
+                center: center,
+                layoutSize: layoutSize,
+                layoutCenter: layoutCenter
+            };
+        }
+
+        function mergeMunicipalities(geoData, municipalityGeoData) {
+                var mCodePrefixes = ['11', '12', '31', '50'];
+                
+                var filteredFeatures = geoData.features.filter(function(feature) {
+                    var cityCode = feature.properties.CityCode ? feature.properties.CityCode.toString() : '';
+                    var outputCity = feature.properties.output_City || '';
+                    
+                    if (cityCode === southSeaIslandsAdcode) {
+                        return false;
+                    }
+                    if (!outputCity) {
+                        return false;
+                    }
+                    if (!feature.geometry || !feature.geometry.coordinates || feature.geometry.coordinates.length === 0) {
+                        return false;
+                    }
+                    
+                    var cityCodePrefix = cityCode.substring(0, 2);
+                    var mCode = cityCodePrefix + '0000';
+                    if (mCodePrefixes.indexOf(cityCodePrefix) !== -1 && municipalityGeoData[mCode]) {
+                        return false;
+                    }
+                    return true;
+                });
+                
+                var mergedFeatures = filteredFeatures;
+                
+                for (var i = 0; i < mCodePrefixes.length; i++) {
+                    var mPrefix = mCodePrefixes[i];
+                    var mCode = mPrefix + '0000';
+                    var mGeoData = municipalityGeoData[mCode];
+                    if (mGeoData && mGeoData.features && mGeoData.features.length > 0) {
+                        mergedFeatures.push(mGeoData.features[0]);
+                    }
+                }
+                
+                return {
+                    type: 'FeatureCollection',
+                    features: mergedFeatures
+                };
+            }
+
+        function initMap(geoData, pm25Data, municipalityGeoData) {
+            mergedGeoData = mergeMunicipalities(geoData, municipalityGeoData);
+            
+            mergedGeoData.features.forEach(function(feature) {
+                if (!feature.properties.name) {
+                    feature.properties.name = feature.properties.output_City || '';
+                }
+            });
+            
+            if (twhnGeoData) {
+                var validTwhnFeatures = twhnGeoData.features.filter(function(feature) {
+                    return feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates.length > 0;
+                });
+                
+                validTwhnFeatures.forEach(function(feature, index) {
+                    if (!feature.properties.name) {
+                        feature.properties.name = '南海诸岛_' + (index + 1);
+                    }
+                });
+                
+                mergedGeoData.features = mergedGeoData.features.concat(validTwhnFeatures);
+            }
+            
+            echarts.registerMap('china', mergedGeoData);
+            renderMap(null);
+            updateTitle('all');
+        }
+
+        function renderMap(filterCities, regionType) {
+            var features = mergedGeoData.features;
+            var mapContainer = document.getElementById('map');
+            var containerWidth = mapContainer.offsetWidth;
+            var containerHeight = mapContainer.offsetHeight;
+            
+            if (filterCities) {
+                features = features.filter(function(feature) {
+                    var name = feature.properties.output_City || feature.properties.name || '';
+                    var adcode = feature.properties.adcode ? feature.properties.adcode.toString() : '';
+                    var parentAdcode = feature.properties.parent ? feature.properties.parent.adcode : null;
+                    var pcode = parentAdcode ? parentAdcode.toString() : '';
+                    
+                    if (adcode === southSeaIslandsAdcode || pcode === hainanAdcode) {
+                        return false;
+                    }
+                    return filterCities.indexOf(name) !== -1;
+                });
+                
+                chart.clear();
+                echarts.registerMap('china', {
+                    type: 'FeatureCollection',
+                    features: features
+                });
+            } else {
+                chart.clear();
+                echarts.registerMap('china', mergedGeoData);
+            }
+            
+            showLabel = filterCities ? true : false;
+            
+            var currentData = currentDataType === 'PM25' ? pm25Data : o3Data;
+            var config = colorConfigs[currentDataType];
+
+            var mapData = [];
+            var addedCities = {};
+            features.forEach(function(feature) {
+                var name = feature.properties.output_City || feature.properties.name || '';
+                name = normalizeCityName(name);
+                if (!name) return;
+                
+                if (addedCities[name]) {
+                    return;
+                }
+                addedCities[name] = true;
+                
+                var value = null;
+                if (currentData[name] !== undefined && currentData[name] !== null) {
+                    value = currentData[name];
+                }
+                
+                feature.properties.value = value;
+                
+                var labelColor = '#333';
+                var borderColor = '#fff';
+                var borderWidth = 0.5;
+                var borderType = 'solid';
+                
+                if (currentDataType === 'PM25') {
+                    if (value !== null && value !== undefined) {
+                        if (value >= 31) {
+                            labelColor = '#fff';
+                        }
+                        if (value > 25 && value <= 30) {
+                            borderColor = '#D8EE2C';
+                            borderWidth = 3;
+                            borderType = 'dashed';
+                        }
+                    }
+                } else {
+                    if (value !== null && value !== undefined) {
+                        if (value >= 191) {
+                            labelColor = '#fff';
+                        }
+                    }
+                }
+                
+                var item = {
+                    name: name,
+                    value: value,
+                    label: {
+                        show: showLabel,
+                        fontSize: 12,
+                        color: labelColor
+                    },
+                    itemStyle: {
+                        borderColor: borderColor,
+                        borderWidth: borderWidth,
+                        borderType: borderType
+                    }
+                };
+                
+                mapData.push(item);
+            });
+
+            var zoomAndCenter = calculateZoomAndCenter(features, containerWidth, containerHeight, regionType);
+            var mapZoom = zoomAndCenter.zoom;
+            var mapCenter = zoomAndCenter.center;
+            var mapLayoutSize = zoomAndCenter.layoutSize;
+            var mapLayoutCenter = zoomAndCenter.layoutCenter;
+            
+            if (!filterCities) {
+                mapCenter = [110, 30];
+                mapLayoutCenter = [600, 380];
+            }
+            
+            var whiteblock = document.getElementById('whiteblock');
+            if (whiteblock) {
+                whiteblock.style.display = filterCities ? 'none' : 'block';
+            }
+
+            var boundaryOverlay = document.querySelector('.boundary-overlay');
+            if (boundaryOverlay) {
+                boundaryOverlay.style.display = filterCities ? 'none' : 'block';
+            }
+
+            var option = {
+                backgroundColor: '#fff',
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        var value = params.value;
+                        var text = value !== null && value !== undefined && !isNaN(value) ? value + ' ' + config.unit : '暂无数据';
+                        var title = currentDataType === 'PM25' ? 'PM2.5浓度' : 'O₃浓度';
+                        return '<div style="padding: 8px;">' +
+                            '<strong>' + params.name + '</strong><br/>' +
+                            title + ': ' + text +
+                            '</div>';
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#e0e0e0',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#333'
+                    },
+                    padding: [10, 15]
+                },
+                visualMap: {
+                    type: 'piecewise',
+                    show: false,
+                    left: 'left',
+                    top: 'bottom',
+                    min: config.min,
+                    max: config.max,
+                    pieces: config.pieces,
+                    textStyle: {
+                        color: '#666'
+                    },
+                    itemWidth: 15,
+                    itemHeight: 20
+                },
+                series: [
+                    {
+                        name: config.title,
+                        type: 'map',
+                        map: 'china',
+                        roam: roamEnabled,
+                        zoom: mapZoom,
+                        center: mapCenter,
+                        layoutCenter: mapLayoutCenter,
+                        layoutSize: mapLayoutSize,
+                        projection: {
+                            project: function(point) {
+                                var lng = point[0];
+                                var lat = point[1];
+                                var [B54, L54] = GaussProjection.wgs84ToBj54(lat, lng);
+                                var [X, Y] = GaussProjection.gaussForward(B54, L54, 110);
+                                var offsetX = -550000;
+                                var offsetY = 3800000;
+                                var scale = 0.00005;
+                                return [(Y - offsetX) * scale, -(X - offsetY) * scale];
+                            },
+                            unproject: function(px) {
+                                var offsetX = -550000;
+                                var offsetY = 3800000;
+                                var scale = 0.00005;
+                                var Y = px[0] / scale + offsetX;
+                                var X = -px[1] / scale + offsetY;
+                                var [B54, L54] = GaussProjection.gaussInverse(X, Y, 110);
+                                var [lng, lat] = GaussProjection.bj54ToWgs84(B54, L54);
+                                return [lng, lat];
+                            }
+                        },
+                        data: mapData,
+                        label: {
+                            show: showLabel,
+                            fontSize: 12,
+                            formatter: function(params) {
+                                return params.name;
+                            },
+                            color: function(params) {
+                                var value = params.value;
+                                return (value !== null && value !== undefined && value >= 31) ? '#fff' : '#333';
+                            }
+                        },
+                        itemStyle: {
+                            normal: {
+                                borderColor: function(params) {
+                                    var value = params.value;
+                                    return (value !== null && value !== undefined && value > 25 && value <= 30) ? '#D8EE2C' : '#fff';
+                                },
+                                borderWidth: function(params) {
+                                    var value = params.value;
+                                    return (value !== null && value !== undefined && value > 25 && value <= 30) ? 3 : 0.5;
+                                },
+                                borderType: function(params) {
+                                    var value = params.value;
+                                    return (value !== null && value !== undefined && value > 25 && value <= 30) ? 'dashed' : 'solid';
+                                }
+                            }
+                        },
+                        regions: [
+                            {
+                                name: '南海诸岛',
+                                itemStyle: {
+                                    normal: {
+                                        opacity: 0,
+                                        borderWidth: 0,
+                                        borderColor: 'transparent'
+                                    }
+                                },
+                                label: { show: false }
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            chart.setOption(option);
+            
+            updateDataList(filterCities);
+            
+            var paramsPanel = document.getElementById('map-params');
+            if (roamEnabled) {
+                paramsPanel.classList.remove('hidden');
+                updateParamsPanel(regionType || '全国', mapZoom, mapCenter, mapLayoutCenter, mapLayoutSize);
+            } else {
+                paramsPanel.classList.add('hidden');
+            }
+            
+            chart.off('geoRoam');
+            chart.on('geoRoam', function(params) {
+                if (!roamEnabled) return;
+                
+                var option = chart.getOption();
+                var seriesOption = option.series && option.series[0];
+                
+                var series = chart.getModel().getSeries()[0];
+                if (series && series.coordinateSystem) {
+                    var coordSys = series.coordinateSystem;
+                    var zoom = coordSys.getZoom ? coordSys.getZoom() : (coordSys._zoom || 1);
+                    var center = coordSys.getCenter ? coordSys.getCenter() : (coordSys._center || [110, 30]);
+                    
+                    updateParamsPanel(
+                        regionType || '全国',
+                        zoom,
+                        center,
+                        seriesOption ? seriesOption.layoutCenter : [600, 380],
+                        seriesOption ? seriesOption.layoutSize : 720
+                    );
+                } else if (seriesOption) {
+                    updateParamsPanel(
+                        regionType || '全国',
+                        seriesOption.zoom,
+                        seriesOption.center,
+                        seriesOption.layoutCenter,
+                        seriesOption.layoutSize
+                    );
+                }
+            });
+            
+            chart.off('click');
+            chart.on('click', function(params) {
+                if (!roamEnabled) return;
+                var name = params.name || '';
+                var adcode = '-';
+                var cityCode = '-';
+                var outputCity = '-';
+                var center = '-';
+                var bbox = '-';
+                var index = '-';
+                
+                if (mergedGeoData && mergedGeoData.features) {
+                    for (var i = 0; i < mergedGeoData.features.length; i++) {
+                        var feature = mergedGeoData.features[i];
+                        var featureName = feature.properties.name || '';
+                        if (featureName === name) {
+                            adcode = feature.properties.adcode || '-';
+                            cityCode = feature.properties.CityCode || '-';
+                            outputCity = feature.properties.output_City || '-';
+                            index = i;
+                            
+                            var coords = feature.geometry.coordinates;
+                            if (coords && coords.length > 0) {
+                                var allPoints = [];
+                                function collectPoints(arr) {
+                                    if (typeof arr[0] === 'number') {
+                                        allPoints.push(arr);
+                                    } else {
+                                        for (var j = 0; j < arr.length; j++) {
+                                            collectPoints(arr[j]);
+                                        }
+                                    }
+                                }
+                                collectPoints(coords);
+                                
+                                if (allPoints.length > 0) {
+                                    var lngs = allPoints.map(function(p) { return p[0]; });
+                                    var lats = allPoints.map(function(p) { return p[1]; });
+                                    var minLng = Math.min.apply(null, lngs);
+                                    var maxLng = Math.max.apply(null, lngs);
+                                    var minLat = Math.min.apply(null, lats);
+                                    var maxLat = Math.max.apply(null, lats);
+                                    center = '[' + ((minLng + maxLng) / 2).toFixed(4) + ', ' + ((minLat + maxLat) / 2).toFixed(4) + ']';
+                                    bbox = '[' + minLng.toFixed(2) + ', ' + minLat.toFixed(2) + '] - [' + maxLng.toFixed(2) + ', ' + maxLat.toFixed(2) + ']';
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                document.getElementById('params-click-name').textContent = name;
+                document.getElementById('params-click-adcode').textContent = adcode;
+                document.getElementById('params-click-citycode').textContent = cityCode;
+                document.getElementById('params-click-center').textContent = center;
+                document.getElementById('params-click-bbox').textContent = bbox;
+                document.getElementById('params-click-index').textContent = index;
+                
+                console.log('=== 点击区域信息 ===');
+                console.log('name:', name);
+                console.log('adcode:', adcode);
+                console.log('CityCode:', cityCode);
+                console.log('output_City:', outputCity);
+                console.log('center:', center);
+                console.log('bbox:', bbox);
+                console.log('index:', index);
+                console.log('params:', params);
+            });
+            
+            setTimeout(function() {
+                chart.resize();
+                addMapImages(!filterCities);
+                renderBoundaryOverlay();
+            }, 500);
+        }
+
+        function addMapImages(isFullMode) {
+            var mapContainer = document.getElementById('map');
+            
+            var legendImg = document.querySelector('.map-legend');
+            if (!legendImg) {
+                legendImg = document.createElement('img');
+                legendImg.className = 'map-legend';
+                legendImg.alt = 'Legend';
+                mapContainer.appendChild(legendImg);
+            }
+            
+            var legendSrc = currentDataType === 'PM25' ? 'assets/Legend-pm25.png' : 'assets/Legend-o3.png';
+            if (legendImg.src !== legendSrc) {
+                legendImg.src = legendSrc;
+            }
+            
+            if (isFullMode) {
+                legendImg.classList.add('full-mode');
+            } else {
+                legendImg.classList.remove('full-mode');
+            }
+            
+            if (!document.querySelector('.map-logo')) {
+                var logoImg = document.createElement('img');
+                logoImg.src = 'assets/LOGO.png';
+                logoImg.className = 'map-logo';
+                logoImg.alt = 'Logo';
+                mapContainer.appendChild(logoImg);
+            }
+        }
+
+        function updateParamsPanel(region, zoom, center, layoutCenter, layoutSize) {
+            document.getElementById('params-region').textContent = region;
+            document.getElementById('params-zoom').textContent = typeof zoom === 'number' ? zoom.toFixed(2) : zoom;
+            document.getElementById('params-center').textContent = Array.isArray(center) ? '[' + center.map(function(v) { return typeof v === 'number' ? v.toFixed(4) : v; }).join(', ') + ']' : center;
+            document.getElementById('params-layout-center').textContent = Array.isArray(layoutCenter) ? '[' + layoutCenter.map(function(v) { return typeof v === 'number' ? v.toFixed(2) : v; }).join(', ') + ']' : layoutCenter;
+            document.getElementById('params-layout-size').textContent = typeof layoutSize === 'number' ? layoutSize.toFixed(2) : layoutSize;
+        }
+
+        function renderBoundaryOverlay() {
+            var mapWrapper = document.querySelector('.map-wrapper');
+            var svgOverlay = document.querySelector('.boundary-overlay');
+            if (svgOverlay) {
+                svgOverlay.remove();
+            }
+            
+            svgOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svgOverlay.setAttribute('class', 'boundary-overlay');
+            svgOverlay.setAttribute('width', mapWrapper.offsetWidth);
+            svgOverlay.setAttribute('height', mapWrapper.offsetHeight);
+            mapWrapper.appendChild(svgOverlay);
+            
+            if (!chart) return;
+            
+            var coordSys = null;
+            var series = chart.getModel().getSeries();
+            for (var i = 0; i < series.length; i++) {
+                if (series[i].coordinateSystem) {
+                    coordSys = series[i].coordinateSystem;
+                    break;
+                }
+            }
+            
+            if (!coordSys) return;
+            
+            var getPixelCoords = function(lng, lat) {
+                return coordSys.dataToPoint ? coordSys.dataToPoint([lng, lat]) : [lng, lat];
+            };
+            
+            function drawBoundary(data, color, width) {
+                if (!data || !data.features || data.features.length === 0) return;
+                
+                var feature = data.features[0];
+                var coords = feature.geometry.coordinates;
+                
+                function drawPath(pathCoords) {
+                    if (pathCoords.length < 2) return;
+                    
+                    var d = '';
+                    var firstPoint = getPixelCoords(pathCoords[0][0], pathCoords[0][1]);
+                    d += 'M ' + firstPoint[0] + ',' + firstPoint[1];
+                    
+                    for (var i = 1; i < pathCoords.length; i++) {
+                        var point = getPixelCoords(pathCoords[i][0], pathCoords[i][1]);
+                        d += ' L ' + point[0] + ',' + point[1];
+                    }
+                    
+                    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', d);
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', color);
+                    path.setAttribute('stroke-width', width);
+                    svgOverlay.appendChild(path);
+                }
+                
+                if (feature.geometry.type === 'MultiLineString') {
+                    for (var i = 0; i < coords.length; i++) {
+                        drawPath(coords[i]);
+                    }
+                } else {
+                    drawPath(coords);
+                }
+            }
+            
+            if (nanhaiGeoData && nanhaiGeoData.features) {
+                for (var i = 0; i < nanhaiGeoData.features.length; i++) {
+                    var feature = nanhaiGeoData.features[i];
+                    if (feature.geometry && feature.geometry.type === 'MultiLineString') {
+                        var coords = feature.geometry.coordinates;
+                        for (var j = 0; j < coords.length; j++) {
+                            var pathCoords = coords[j];
+                            if (pathCoords.length < 2) continue;
+                            
+                            var d = '';
+                            var firstPoint = getPixelCoords(pathCoords[0][0], pathCoords[0][1]);
+                            d += 'M ' + firstPoint[0] + ',' + firstPoint[1];
+                            
+                            for (var k = 1; k < pathCoords.length; k++) {
+                                var point = getPixelCoords(pathCoords[k][0], pathCoords[k][1]);
+                                d += ' L ' + point[0] + ',' + point[1];
+                            }
+                            
+                            var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            path.setAttribute('d', d);
+                            path.setAttribute('fill', 'none');
+                            path.setAttribute('stroke', nanhaiStrokeColor);
+                            path.setAttribute('stroke-width', nanhaiStrokeWidth);
+                            svgOverlay.appendChild(path);
+                        }
+                    }
+                }
+            }
+            
+            if (twhnGeoData && twhnGeoData.features) {
+                for (var m = 0; m < twhnGeoData.features.length; m++) {
+                    var twhnFeature = twhnGeoData.features[m];
+                    if (twhnFeature.geometry && twhnFeature.geometry.type === 'MultiPolygon') {
+                        var twhnCoords = twhnFeature.geometry.coordinates;
+                        for (var n = 0; n < twhnCoords.length; n++) {
+                            var polygonCoords = twhnCoords[n];
+                            for (var p = 0; p < polygonCoords.length; p++) {
+                                var ringCoords = polygonCoords[p];
+                                if (ringCoords.length < 2) continue;
+                                
+                                var d = '';
+                                var firstPoint = getPixelCoords(ringCoords[0][0], ringCoords[0][1]);
+                                d += 'M ' + firstPoint[0] + ',' + firstPoint[1];
+                                
+                                for (var q = 1; q < ringCoords.length; q++) {
+                                    var point = getPixelCoords(ringCoords[q][0], ringCoords[q][1]);
+                                    d += ' L ' + point[0] + ',' + point[1];
+                                }
+                                d += ' Z';
+                                
+                                var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                path.setAttribute('d', d);
+                                path.setAttribute('fill', '#C8C8C8');
+                                path.setAttribute('stroke', twhnStrokeColor);
+                                path.setAttribute('stroke-width', twhnStrokeWidth);
+                                svgOverlay.appendChild(path);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCSV('data/pm25demo.csv', function(data) {
+                pm25Data = data.pm25;
+                o3Data = data.o3;
+                
+                var municipalityGeoData = {};
+                var loadedCount = 0;
+                var totalMunicipalities = 1;
+                
+                var loadMunicipality = function(code, name) {
+                    loadGeoJSON('data/' + name + '.geojson', function(data) {
+                        municipalityGeoData[code] = data;
+                        loadedCount++;
+                        if (loadedCount === totalMunicipalities) {
+                            loadAdditionalData(municipalityGeoData);
+                        }
+                    });
+                };
+                
+                // loadMunicipality('110000', 'beijing');
+                // loadMunicipality('120000', 'tianjin');
+                // loadMunicipality('310000', 'shanghai');
+                loadMunicipality('500000', 'chongqing');
+            });
+            
+            document.getElementById('btn-apply-stroke').addEventListener('click', function() {
+                nanhaiStrokeColor = document.getElementById('nanhai-color').value;
+                nanhaiStrokeWidth = parseFloat(document.getElementById('nanhai-width').value);
+                twhnStrokeColor = document.getElementById('twhn-color').value;
+                twhnStrokeWidth = parseFloat(document.getElementById('twhn-width').value);
+                
+                renderBoundaryOverlay();
+            });
+        });
+        
+        function loadAdditionalData(municipalityGeoData) {
+            var loadedCount = 0;
+            var total = 2;
+            
+            var checkComplete = function() {
+                loadedCount++;
+                if (loadedCount === total) {
+                    var loadingEl = document.querySelector('.loading');
+                    if (loadingEl) {
+                        loadingEl.style.display = 'none';
+                    }
+                    loadGeoJSON('data/update_china.geojson', function(geoData) {
+                        initMap(geoData, pm25Data, municipalityGeoData);
+                    });
+                }
+            };
+            
+            loadGeoJSON('data/update_nanhai.geojson', function(data) {
+                nanhaiGeoData = data;
+                checkComplete();
+            });
+            
+            loadGeoJSON('data/update_twhn.geojson', function(data) {
+                twhnGeoData = data;
+                checkComplete();
+            });
+        }
+
+        window.addEventListener('resize', function() {
+            if (chart) {
+                chart.resize();
+            }
+        });
+
+        var currentYear = '2026';
+        var currentMonth = '5';
+        
+        var regionNames = {
+            'all': '全国',
+            'JJJ': '京津冀及周边地区“2+36”城市',
+            'CY': '成渝地区',
+            'FW': '汾渭平原地区',
+            'CSJ': '长三角地区',
+            'ZSJ': '珠三角地区'
+        };
+
+        function getTitle(region) {
+            var regionName = regionNames[region] || '全国';
+            var dataTypeText = currentDataType === 'PM25' ? 'PM<span class="pm25-subscript">2.5</span>' : 'O₃';
+            return currentYear + '年' + currentMonth + '月' + regionName + dataTypeText + '浓度';
+        }
+
+        function updateTitle(region) {
+            document.getElementById('map-title').innerHTML = getTitle(region);
+        }
+
+        function updateDataList(filterCities) {
+            var dataList = document.getElementById('data-list');
+            var currentData = currentDataType === 'PM25' ? pm25Data : o3Data;
+            
+            var items = [];
+            for (var city in currentData) {
+                if (currentData.hasOwnProperty(city)) {
+                    items.push({
+                        city: city,
+                        value: currentData[city]
+                    });
+                }
+            }
+            
+            items.sort(function(a, b) {
+                return b.value - a.value;
+            });
+            
+            if (filterCities && filterCities.length > 0) {
+                var filterSet = new Set(filterCities);
+                items = items.filter(function(item) {
+                    return filterSet.has(item.city);
+                });
+            }
+            
+            if (items.length === 0) {
+                dataList.innerHTML = '<li>暂无数据</li>';
+                return;
+            }
+            
+            var html = '';
+            for (var i = 0; i < items.length; i++) {
+                var highlightClass = '';
+                if (currentDataType === 'PM25' && items[i].value > 25 && items[i].value <= 30) {
+                    highlightClass = ' highlight-row';
+                }
+                html += '<li class="' + highlightClass + '"><span class="city-name">' + items[i].city + '</span><span class="city-value">' + items[i].value + '</span></li>';
+            }
+            dataList.innerHTML = html;
+        }
+
+        function setDateFromFileName(filename) {
+            var match = filename.match(/^(\d{4})(\d{2})/);
+            if (match) {
+                currentYear = match[1];
+                currentMonth = parseInt(match[2], 10).toString();
+                return true;
+            }
+            return false;
+        }
+
+        document.getElementById('btn-all').addEventListener('click', function() {
+            regionType = 'all';
+            renderMap(null, regionType);
+            updateTitle('all');
+            this.classList.add('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+        });
+
+        document.getElementById('btn-jjj').addEventListener('click', function() {
+            regionType = 'JJJ';
+            renderMap(jjjCities, regionType);
+            updateTitle('JJJ');
+            this.classList.add('active');
+            document.getElementById('btn-all').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+        });
+
+        document.getElementById('btn-cy').addEventListener('click', function() {
+            regionType = 'CY';
+            renderMap(cyCities, regionType);
+            updateTitle('CY');
+            this.classList.add('active');
+            document.getElementById('btn-all').classList.remove('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+        });
+
+        document.getElementById('btn-fw').addEventListener('click', function() {
+            regionType = 'FW';
+            renderMap(fwCities, regionType);
+            updateTitle('FW');
+            this.classList.add('active');
+            document.getElementById('btn-all').classList.remove('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+        });
+
+        document.getElementById('btn-csj').addEventListener('click', function() {
+            regionType = 'CSJ';
+            renderMap(csjCities, regionType);
+            updateTitle('CSJ');
+            this.classList.add('active');
+            document.getElementById('btn-all').classList.remove('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+        });
+
+        document.getElementById('btn-zsj').addEventListener('click', function() {
+            regionType = 'ZSJ';
+            renderMap(zsjCities, regionType);
+            updateTitle('ZSJ');
+            this.classList.add('active');
+            document.getElementById('btn-all').classList.remove('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+        });
+
+        document.getElementById('btn-pm25').addEventListener('click', function() {
+            currentDataType = 'PM25';
+            regionType = 'all';
+            this.classList.add('active');
+            document.getElementById('btn-o3').classList.remove('active');
+            
+            document.getElementById('btn-all').classList.add('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.add('hidden');
+            
+            renderMap(null, regionType);
+            updateTitle('all');
+        });
+
+        document.getElementById('btn-o3').addEventListener('click', function() {
+            currentDataType = 'O3';
+            regionType = 'all';
+            this.classList.add('active');
+            document.getElementById('btn-pm25').classList.remove('active');
+            
+            document.getElementById('btn-all').classList.add('active');
+            document.getElementById('btn-jjj').classList.remove('active');
+            document.getElementById('btn-cy').classList.remove('active');
+            document.getElementById('btn-fw').classList.remove('active');
+            document.getElementById('btn-csj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('active');
+            document.getElementById('btn-zsj').classList.remove('hidden');
+            
+            renderMap(null, regionType);
+            updateTitle('all');
+        });
+
+        document.getElementById('btn-roam-toggle').addEventListener('click', function() {
+            roamEnabled = !roamEnabled;
+            
+            chart.setOption({
+                series: [{
+                    roam: roamEnabled
+                }]
+            });
+            
+            var paramsPanel = document.getElementById('map-params');
+            if (roamEnabled) {
+                paramsPanel.classList.remove('hidden');
+                var seriesOption = chart.getOption().series[0];
+                var region = document.querySelector('.btn.active').textContent;
+                if (region === '全部城市') region = '全国';
+                updateParamsPanel(region, seriesOption.zoom, seriesOption.center, seriesOption.layoutCenter, seriesOption.layoutSize);
+                this.textContent = '关闭拖动和缩放';
+                this.classList.add('active');
+            } else {
+                paramsPanel.classList.add('hidden');
+                this.textContent = '开启拖动和缩放';
+                this.classList.remove('active');
+            }
+        });
+
+        document.getElementById('btn-csv-select').addEventListener('click', function() {
+            document.getElementById('csv-file-input').click();
+        });
+
+        document.getElementById('csv-file-input').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            
+            var filename = file.name;
+            if (!filename.match(/^\d{6}\.csv$/)) {
+                alert('文件名格式不正确，请使用"YYYYMM.csv"格式');
+                return;
+            }
+            
+            if (setDateFromFileName(filename)) {
+                loadCSVFromFile(file, function(data) {
+                    pm25Data = data.pm25;
+                    o3Data = data.o3;
+                    var activeBtn = document.querySelector('.btn.active');
+                    regionType = 'all';
+                    if (activeBtn) {
+                        var btnText = activeBtn.textContent;
+                        if (btnText === 'JJJ') regionType = 'JJJ';
+                        else if (btnText === 'CY') regionType = 'CY';
+                        else if (btnText === 'FW') regionType = 'FW';
+                        else if (btnText === 'CSJ') regionType = 'CSJ';
+                        else if (btnText === 'ZSJ') regionType = 'ZSJ';
+                    }
+                    renderMap(regionType === 'all' ? null : window[regionType + 'Cities'], regionType);
+                    updateTitle(regionType);
+                    alert('CSV文件加载成功！');
+                });
+            }
+        });
+
+        document.getElementById('btn-legend').addEventListener('click', function() {
+            legendVisible = !legendVisible;
+            chart.setOption({
+                visualMap: {
+                    show: legendVisible
+                }
+            });
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-stroke-settings').addEventListener('click', function() {
+            var strokePanel = document.querySelector('.stroke-settings');
+            strokePanel.classList.toggle('hidden');
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-download').addEventListener('click', function() {
+            var mapContainer = document.querySelector('.map-wrapper');
+            
+            html2canvas(mapContainer, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true
+            }).then(function(canvas) {
+                var link = document.createElement('a');
+                var dateStr = currentYear + currentMonth;
+                var speciesStr = currentDataType.toLowerCase();
+                var regionStr = regionType === 'all' ? 'china' : regionType.toLowerCase();
+                link.download = dateStr + '-' + speciesStr + '-' + regionStr + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(function(err) {
+                console.error('下载失败:', err);
+                alert('下载失败，请重试');
+            });
+        });
+        // 数据处理弹窗逻辑
+const btnDataHandle = document.getElementById('btnDataHandle');
+const modalContainer = document.getElementById('modalContainer');
+
+// 打开弹窗
+btnDataHandle.onclick = function () {
+    // 清空旧弹窗
+    modalContainer.innerHTML = '';
+    // 生成弹窗DOM
+    const mask = document.createElement('div');
+    mask.className = 'modal-mask';
+    mask.innerHTML = `
+        <div class="modal-wrap">
+            <div class="modal-header">
+                <span>数据处理工具</span>
+                <button class="modal-close">关闭</button>
+            </div>
+            <div class="modal-iframe-box">
+                <iframe src="dataconv.html"></iframe>
+            </div>
+        </div>
+    `;
+    modalContainer.appendChild(mask);
+
+    // 关闭按钮事件
+    mask.querySelector('.modal-close').onclick = function () {
+        modalContainer.innerHTML = '';
+    };
+    // 点击遮罩空白处关闭
+    mask.onclick = function (e) {
+        if (e.target === mask) {
+            modalContainer.innerHTML = '';
+        }
+    };
+};
+
+    </script>
+    <!-- 弹窗根容器 -->
+   
+</body>
+</html>

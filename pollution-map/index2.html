@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国PM2.5浓度地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        /* 样式保持不变（已省略，实际使用时请保留完整样式） */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { width:100vw; height:100vh; background:#f5f5f5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; overflow:hidden; }
+        .container { width:100%; height:100%; display:flex; flex-direction:row; align-items:stretch; justify-content:flex-start; padding:20px; gap:20px; }
+        .config-panel { width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:20px; }
+        .map-wrapper { position:relative; width:750px; height:750px; flex-shrink:0; }
+        .data-panel { width:220px; flex-shrink:0; background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:15px; overflow-y:auto; max-height:750px; }
+        .data-panel h4 { margin:0 0 10px 0; padding-bottom:10px; border-bottom:1px solid #eee; font-size:14px; color:#333; }
+        .data-list { list-style:none; padding:0; margin:0; font-size:12px; }
+        .data-list li { padding:6px 0; border-bottom:1px solid #f5f5f5; display:flex; justify-content:space-between; }
+        .data-list li:last-child { border-bottom:none; }
+        .data-list .city-name { color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
+        .data-list .city-value { color:#333; font-weight:bold; margin-left:10px; }
+        .whiteblock { width:100px; height:150px; background:#fff; position:absolute; top:380px; right:0; }
+        .map-title { position:absolute; top:15px; left:15px; font-size:24px; color:#333; font-weight:600; z-index:1000; pointer-events:none; }
+        .map-title .pm25-subscript { display:inline-block; font-size:12px; margin-top:8px; vertical-align:middle; }
+        #map { width:100%; height:100%; background:#fff; border-radius:8px; box-shadow:0 2px 12px rgba(0,0,0,0.1); position:relative; }
+        .boundary-overlay { position:absolute; top:0; left:0; pointer-events:none; z-index:100; }
+        .loading { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:18px; color:#666; }
+        .btn-group { display:flex; flex-direction:column; gap:8px; }
+        .btn { padding:10px 15px; font-size:14px; border:none; border-radius:4px; cursor:pointer; background:#409eff; color:#fff; transition:background 0.3s; text-align:center; }
+        .btn:hover { background:#66b1ff; }
+        .btn.active { background:#67c23a; }
+        .ec-map-sea, .ec-map-jd { display:none !important; }
+        .zoom-control { display:flex; flex-direction:row; align-items:stretch; gap:4px; }
+        .zoom-control .btn { flex:1; padding:5px; }
+        #zoom-value { font-size:14px; color:#666; font-weight:bold; text-align:center; padding:8px 0; background:#f5f5f5; border-radius:4px; }
+        .wuzhong { display:flex; flex-direction:row; align-items:stretch; gap:4px; }
+        .stroke-settings { margin-top:20px; padding:15px; background:#fff; border-radius:8px; border:1px solid #e0e0e0; }
+        .stroke-settings h4 { font-size:14px; color:#333; margin:0 0 12px 0; padding-bottom:8px; border-bottom:1px solid #f0f0f0; }
+        .setting-group { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+        .setting-group label { font-size:12px; color:#666; white-space:nowrap; }
+        .setting-group input[type="color"] { width:40px; height:28px; border:1px solid #ddd; border-radius:4px; cursor:pointer; }
+        .setting-group input[type="number"] { width:70px; height:28px; padding:0 8px; border:1px solid #ddd; border-radius:4px; font-size:12px; text-align:center; }
+        .btn-confirm { width:100%; margin-top:10px; background:#4CAF50; color:white; border:none; }
+        .btn-confirm:hover { background:#45a049; }
+        .map-legend { position:absolute; bottom:10px; right:10px; z-index:100; width:380px; height:auto; }
+        .map-legend.full-mode { left:20px; bottom:120px; right:auto; }
+        .map-logo { position:absolute; top:10px; right:10px; z-index:100; height:60px; width:auto; }
+        .map-params { position:absolute; bottom:10px; left:10px; background:rgba(255,255,255,0.95); border-radius:8px; padding:12px; font-size:12px; color:#333; box-shadow:0 2px 8px rgba(0,0,0,0.1); z-index:200; min-width:200px; max-height:200px; overflow-y:auto; }
+        .map-params h5 { margin:0 0 8px 0; font-size:13px; font-weight:600; color:#333; padding-bottom:6px; border-bottom:1px solid #eee; }
+        .map-params p { margin:4px 0; line-height:1.5; }
+        .map-params strong { color:#666; }
+        .hidden { display:none; }
+        .params-divider { height:1px; background:#eee; margin:10px 0; }
+        .highlight-row { background-color:rgba(158,238,104,0.3); }
+        .hidden-btn { display:none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="config-panel">
+            <div class="btn-group">
+                <button class="btn" id="btn-csv-select">选择CSV文件</button>
+                <button class="btn" id="btn-download">下载图片</button>
+            </div>
+            <div class="btn-group wuzhong">
+                <button class="btn active" id="btn-pm25">PM2.5</button>
+                <button class="btn" id="btn-o3">O3</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn active" id="btn-all">全国</button>
+                <button class="btn" id="btn-jjj">京津冀及周边地区</button>
+                <button class="btn" id="btn-cy">成渝地区</button>
+                <button class="btn" id="btn-fw">汾渭平原</button>
+                <button class="btn" id="btn-csj">长三角地区</button>
+                <button class="btn hidden" id="btn-zsj">珠三角地区</button>
+            </div>
+            <div class="zoom-control">
+                <button class="btn" id="btn-roam-toggle">开启拖动和缩放</button>
+                <button class="btn" id="btn-legend">图例</button>
+                <button class="btn" id="btn-stroke-settings">描边设置</button>
+                <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
+            </div>
+            <div class="stroke-settings hidden">
+                <h4>描边设置</h4>
+                <div class="setting-group">
+                    <label>南海诸岛颜色:</label>
+                    <input type="color" id="nanhai-color" value="#969696">
+                </div>
+                <div class="setting-group">
+                    <label>南海诸岛粗细:</label>
+                    <input type="number" id="nanhai-width" value="2.0" min="0" max="10" step="0.1">
+                </div>
+                <div class="setting-group">
+                    <label>台湾海南颜色:</label>
+                    <input type="color" id="twhn-color" value="#FFFFFF">
+                </div>
+                <div class="setting-group">
+                    <label>台湾海南粗细:</label>
+                    <input type="number" id="twhn-width" value="1.0" min="0" max="10" step="0.1">
+                </div>
+                <button class="btn btn-confirm" id="btn-apply-stroke">确定</button>
+            </div>
+        </div>
+        <div class="map-wrapper">
+            <div id="map">
+                <!-- 添加 id 以便可靠引用 -->
+                <div id="loading-text" class="loading">加载中...</div>
+            </div>
+            <div class="whiteblock" id="whiteblock"></div>
+            <div class="map-title" id="map-title"></div>
+            <div class="map-params hidden" id="map-params">
+                <h5 id="params-region">全国</h5>
+                <p><strong>- zoom:</strong> <span id="params-zoom">1</span></p>
+                <p><strong>- center:</strong> <span id="params-center">[110, 30]</span></p>
+                <p><strong>- layoutCenter:</strong> <span id="params-layout-center">[600, 380]</span></p>
+                <p><strong>- layoutSize:</strong> <span id="params-layout-size">720</span></p>
+                <div class="params-divider"></div>
+                <h5>点击区域</h5>
+                <p><strong>- name:</strong> <span id="params-click-name">点击地图区域</span></p>
+                <p><strong>- adcode:</strong> <span id="params-click-adcode">-</span></p>
+                <p><strong>- CityCode:</strong> <span id="params-click-citycode">-</span></p>
+                <p><strong>- 中心:</strong> <span id="params-click-center">-</span></p>
+                <p><strong>- 范围:</strong> <span id="params-click-bbox">-</span></p>
+                <p><strong>- 索引:</strong> <span id="params-click-index">-</span></p>
+            </div>
+        </div>
+        <div class="data-panel" id="data-panel">
+            <h4>数据列表</h4>
+            <ul class="data-list" id="data-list">
+                <li>加载中...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // ======================== 配置 ========================
+        const REGION_CITIES = {
+            JJJ: [
+                '商丘市','周口市','济宁市','泰安市','濮阳市','菏泽市','潍坊市','日照市',
+                '许昌市','漯河市','济南市','聊城市','三门峡市','平顶山市','邯郸市',
+                '秦皇岛市','东营市','石家庄市','滨州市','邢台市','沧州市','衡水市',
+                '安阳市','郑州市','枣庄市','焦作市','临沂市','洛阳市','淄博市',
+                '保定市','北京市','德州市','开封市','唐山市','新乡市','廊坊市',
+                '天津市','鹤壁市'
+            ],
+            CY: [
+                '广安市','重庆市','雅安市','南充市','达州市','泸州市','遂宁市','内江市',
+                '资阳市','自贡市','宜宾市','乐山市','绵阳市','成都市','眉山市','德阳市'
+            ],
+            FW: [
+                '铜川市','宝鸡市','运城市','长治市','晋城市','西安市','渭南市','咸阳市',
+                '吕梁市','晋中市','太原市','临汾市','阳泉市'
+            ],
+            CSJ: [
+                '亳州市','舟山市','六安市','宁波市','盐城市','连云港市','宿迁市','淮安市',
+                '宿州市','绍兴市','嘉兴市','徐州市','上海市','淮北市','南通市','淮南市',
+                '合肥市','杭州市','南京市','阜阳市','苏州市','蚌埠市','泰州市','湖州市',
+                '无锡市','常州市','芜湖市','扬州市','滁州市','镇江市','马鞍山市'
+            ],
+            ZSJ: [
+                '肇庆市','广州市','惠州市','佛山市','深圳市','珠海市','江门市','中山市','东莞市'
+            ]
+        };
+
+        const COLOR_CONFIGS = {
+            PM25: {
+                pieces: [
+                    { min:0, max:5, color:'rgba(158,238,104,1)', label:'0-5' },
+                    { min:6, max:10, color:'rgba(202,234,115,1)', label:'6-10' },
+                    { min:11, max:15, color:'rgba(223,236,120,1)', label:'11-15' },
+                    { min:16, max:25, color:'rgba(255,247,160,1)', label:'16-25' },
+                    { min:26, max:30, color:'rgba(255,247,160,1)', label:'26-30' },
+                    { min:31, max:59, color:'rgba(250,178,72,1)', label:'31-59' },
+                    { min:60, max:300, color:'rgba(239,115,58,1)', label:'60-300' }
+                ],
+                min:0, max:300,
+                title:'PM<span class="pm25-subscript">2.5</span>浓度',
+                unit:'μg/m³',
+                legendSrc:'assets/Legend-pm25.png'
+            },
+            O3: {
+                pieces: [
+                    { min:0, max:60, color:'#9EEE68', label:'0-60' },
+                    { min:61, max:100, color:'#CAEA73', label:'61-100' },
+                    { min:101, max:120, color:'#DFEC78', label:'101-120' },
+                    { min:121, max:160, color:'#ECDA76', label:'121-160' },
+                    { min:161, max:190, color:'#F0BB53', label:'161-190' },
+                    { min:191, max:220, color:'#EF733A', label:'191-220' },
+                    { min:221, max:600, color:'#D42028', label:'221-600' }
+                ],
+                min:0, max:600,
+                title:'O₃浓度',
+                unit:'μg/m³',
+                legendSrc:'assets/Legend-O3.png'
+            }
+        };
+
+        const REGION_ZOOM_CONFIG = {
+            all:   { zoom:0.95, center:[110,30], layoutCenter:[600,380], layoutSize:720 },
+            JJJ:   { zoom:0.75, center:[83.1573,-15.1000], layoutCenter:[450,350], layoutSize:2160 },
+            CY:    { zoom:1.00, center:[35.1974,28.3002], layoutCenter:[400,450], layoutSize:2700 },
+            FW:    { zoom:1.90, center:[55.3278,-8.6602], layoutCenter:[420,380], layoutSize:1440.82 },
+            CSJ:   { zoom:0.83, center:[113.0995,16.8172], layoutCenter:[680,450], layoutSize:1980 },
+            ZSJ:   { zoom:5.15, center:[76.5517,63.8435], layoutCenter:[600,380], layoutSize:720 }
+        };
+
+        const REGION_NAMES = {
+            all:'全国',
+            JJJ:'京津冀及周边地区“2+36”城市',
+            CY:'成渝地区',
+            FW:'汾渭平原地区',
+            CSJ:'长三角地区',
+            ZSJ:'珠三角地区'
+        };
+
+        // ======================== 状态 ========================
+        let chart = echarts.init(document.getElementById('map'));
+        let pm25Data = {};
+        let o3Data = {};
+        let currentDataType = 'PM25';
+        let mergedGeoData = null;
+        let nanhaiGeoData = null;
+        let twhnGeoData = null;
+        let legendVisible = false;
+        let roamEnabled = false;
+        let showLabel = false;
+        let currentRegion = 'all';
+        let currentYear = '2026';
+        let currentMonth = '5';
+
+        let nanhaiStrokeColor = '#969696';
+        let nanhaiStrokeWidth = 2.0;
+        let twhnStrokeColor = '#FFFFFF';
+        let twhnStrokeWidth = 1.0;
+
+        const regionFeaturesCache = new Map();
+        const mapDataCache = new Map();
+
+        let legendImg = null;
+        let logoImg = null;
+
+        // ======================== 工具函数 ========================
+        function normalizeCityName(name) {
+            if (!name) return '';
+            return name.trim().replace(/\s+/g, '');
+        }
+
+        // ======================== 异步加载（Promise化） ========================
+        function loadCSV(url) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            try {
+                                const result = parseCSV(xhr.responseText);
+                                resolve(result);
+                            } catch (e) {
+                                reject(e);
+                            }
+                        } else {
+                            reject(new Error(`加载CSV失败: ${xhr.status}`));
+                        }
+                    }
+                };
+                xhr.open('GET', url, true);
+                xhr.send();
+            });
+        }
+
+        function loadCSVFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const result = parseCSV(e.target.result);
+                        resolve(result);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const pm25Result = {};
+            const o3Result = {};
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const parts = line.split(',');
+                if (parts.length >= 3) {
+                    const city = normalizeCityName(parts[0]);
+                    const pm25Val = parseFloat(parts[1].trim());
+                    const o3Val = parseFloat(parts[2].trim());
+                    if (!isNaN(pm25Val)) pm25Result[city] = pm25Val;
+                    if (!isNaN(o3Val)) o3Result[city] = o3Val;
+                }
+            }
+            return { pm25: pm25Result, o3: o3Result };
+        }
+
+        function loadGeoJSON(url) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            try {
+                                resolve(JSON.parse(xhr.responseText));
+                            } catch (e) {
+                                reject(e);
+                            }
+                        } else {
+                            reject(new Error(`加载GeoJSON失败: ${xhr.status}`));
+                        }
+                    }
+                };
+                xhr.open('GET', url, true);
+                xhr.send();
+            });
+        }
+
+        // ======================== 数据处理与缓存 ========================
+        function getRegionFeatures(regionKey) {
+            if (regionFeaturesCache.has(regionKey)) {
+                return regionFeaturesCache.get(regionKey);
+            }
+            if (!mergedGeoData) return null;
+            let features = mergedGeoData.features;
+            if (regionKey !== 'all') {
+                const cityList = REGION_CITIES[regionKey];
+                if (!cityList) return null;
+                features = features.filter(f => {
+                    const name = f.properties.output_City || f.properties.name || '';
+                    return cityList.indexOf(name) !== -1;
+                });
+            }
+            regionFeaturesCache.set(regionKey, features);
+            return features;
+        }
+
+        function buildMapData(features, dataType) {
+            const data = dataType === 'PM25' ? pm25Data : o3Data;
+            const mapData = [];
+            const added = new Set();
+            features.forEach(f => {
+                const name = normalizeCityName(f.properties.output_City || f.properties.name || '');
+                if (!name || added.has(name)) return;
+                added.add(name);
+                const value = (data[name] !== undefined && data[name] !== null) ? data[name] : null;
+                let labelColor = '#333';
+                let borderColor = '#fff';
+                let borderWidth = 0.5;
+                let borderType = 'solid';
+                if (dataType === 'PM25') {
+                    if (value !== null && value >= 31) labelColor = '#fff';
+                    if (value !== null && value > 25 && value <= 30) {
+                        borderColor = '#D8EE2C';
+                        borderWidth = 3;
+                        borderType = 'dashed';
+                    }
+                } else {
+                    if (value !== null && value >= 191) labelColor = '#fff';
+                }
+                mapData.push({
+                    name: name,
+                    value: value,
+                    label: { show: showLabel, fontSize: 12, color: labelColor },
+                    itemStyle: { borderColor, borderWidth, borderType }
+                });
+            });
+            return mapData;
+        }
+
+        function getMapData(regionKey, dataType) {
+            const cacheKey = regionKey + '_' + dataType;
+            if (mapDataCache.has(cacheKey)) {
+                return mapDataCache.get(cacheKey);
+            }
+            const features = getRegionFeatures(regionKey);
+            if (!features) return [];
+            const mapData = buildMapData(features, dataType);
+            mapDataCache.set(cacheKey, mapData);
+            return mapData;
+        }
+
+        function clearCaches() {
+            regionFeaturesCache.clear();
+            mapDataCache.clear();
+        }
+
+        // ======================== 投影 ========================
+        const GaussProjection = {
+            krasovsky: { a:6378245, f:1/298.3, e2:0.006693421622966, e4:0.000044605166389, e6:0.000000298897949, e8:0.000000001993946 },
+            wgs84: { a:6378137, f:1/298.257223563, e2:0.00669437999014, e4:0.000044618949, e6:0.0000002983, e8:0.00000000199 },
+            sevenParams: { dx:-108, dy:56, dz:103, rx:0, ry:0, rz:0, m:1 },
+            deg2rad: d => d * Math.PI / 180,
+            rad2deg: r => r * 180 / Math.PI,
+            wgs84ToBj54(lat, lng) {
+                const p = this.sevenParams;
+                const radB = this.deg2rad(lat), radL = this.deg2rad(lng);
+                const sinB = Math.sin(radB), cosB = Math.cos(radB), sinL = Math.sin(radL), cosL = Math.cos(radL);
+                const a = this.wgs84.a, e2 = this.wgs84.e2;
+                const N = a / Math.sqrt(1 - e2 * sinB * sinB);
+                let X = N * cosB * cosL, Y = N * cosB * sinL, Z = N * (1 - e2) * sinB;
+                const rx = this.deg2rad(p.rx/3600), ry = this.deg2rad(p.ry/3600), rz = this.deg2rad(p.rz/3600);
+                const X54 = p.dx + X + (-rz*Y + ry*Z) + p.m*X;
+                const Y54 = p.dy + Y + (rz*X - rx*Z) + p.m*Y;
+                const Z54 = p.dz + Z + (-ry*X + rx*Y) + p.m*Z;
+                const a54 = this.krasovsky.a, e2_54 = this.krasovsky.e2;
+                let p2 = Math.sqrt(X54*X54 + Y54*Y54);
+                let B54 = Math.atan(Z54 / (p2 * (1 - e2_54)));
+                let N54, sinB54;
+                for (let i=0; i<5; i++) {
+                    sinB54 = Math.sin(B54);
+                    N54 = a54 / Math.sqrt(1 - e2_54 * sinB54 * sinB54);
+                    B54 = Math.atan((Z54 + N54 * e2_54 * sinB54) / p2);
+                }
+                sinB54 = Math.sin(B54);
+                N54 = a54 / Math.sqrt(1 - e2_54 * sinB54 * sinB54);
+                let L54 = Math.atan(Y54 / X54);
+                if (X54 < 0 && Y54 >= 0) L54 += Math.PI;
+                if (X54 < 0 && Y54 < 0) L54 -= Math.PI;
+                return [this.rad2deg(B54), this.rad2deg(L54)];
+            },
+            bj54ToWgs84(B54, L54) {
+                const p = this.sevenParams;
+                const radB = this.deg2rad(B54), radL = this.deg2rad(L54);
+                const sinB = Math.sin(radB), cosB = Math.cos(radB), sinL = Math.sin(radL), cosL = Math.cos(radL);
+                const a54 = this.krasovsky.a, e2_54 = this.krasovsky.e2;
+                const N54 = a54 / Math.sqrt(1 - e2_54 * sinB * sinB);
+                let X54 = N54 * cosB * cosL, Y54 = N54 * cosB * sinL, Z54 = N54 * (1 - e2_54) * sinB;
+                const rx = this.deg2rad(p.rx/3600), ry = this.deg2rad(p.ry/3600), rz = this.deg2rad(p.rz/3600);
+                const X = X54 - p.dx - (-rz*Y54 + ry*Z54) - p.m*X54;
+                const Y = Y54 - p.dy - (rz*X54 - rx*Z54) - p.m*Y54;
+                const Z = Z54 - p.dz - (-ry*X54 + rx*Y54) - p.m*Z54;
+                const a = this.wgs84.a, e2 = this.wgs84.e2;
+                let p2 = Math.sqrt(X*X + Y*Y);
+                let lat = Math.atan(Z / (p2 * (1 - e2)));
+                let N, sinB2;
+                for (let i=0; i<5; i++) {
+                    sinB2 = Math.sin(lat);
+                    N = a / Math.sqrt(1 - e2 * sinB2 * sinB2);
+                    lat = Math.atan((Z + N * e2 * sinB2) / p2);
+                }
+                sinB2 = Math.sin(lat);
+                N = a / Math.sqrt(1 - e2 * sinB2 * sinB2);
+                let lng = Math.atan(Y / X);
+                if (X < 0 && Y >= 0) lng += Math.PI;
+                if (X < 0 && Y < 0) lng -= Math.PI;
+                return [this.rad2deg(lng), this.rad2deg(lat)];
+            },
+            gaussForward(B, L, L0) {
+                const a = this.krasovsky.a, e2 = this.krasovsky.e2, e4 = this.krasovsky.e4, e6 = this.krasovsky.e6;
+                const radB = this.deg2rad(B), radL = this.deg2rad(L), radL0 = this.deg2rad(L0);
+                const l = radL - radL0;
+                const sinB = Math.sin(radB), cosB = Math.cos(radB), tanB = Math.tan(radB);
+                const N = a / Math.sqrt(1 - e2 * sinB * sinB);
+                const T = tanB * tanB;
+                const C = e2 * cosB * cosB / (1 - e2);
+                const A = l * cosB;
+                const A2 = A*A, A3 = A2*A, A4 = A3*A, A5 = A4*A, A6 = A5*A;
+                const m0 = a * ((1 - e2/4 - 3*e4/64 - 5*e6/256) * radB
+                    - (3*e2/8 + 3*e4/32 + 45*e6/1024) * Math.sin(2*radB)
+                    + (15*e4/256 + 45*e6/1024) * Math.sin(4*radB)
+                    - (35*e6/3072) * Math.sin(6*radB));
+                const x = m0 + N * tanB * (A2/2 + (5 - T + 9*C + 4*C*C)*A4/24
+                    + (61 - 58*T + T*T + 270*C - 330*C*T)*A6/720);
+                let y = N * (A + (1 - T + C)*A3/6
+                    + (5 - 18*T + T*T + 14*C - 58*C*T)*A5/120);
+                y += 500000;
+                return [x, y];
+            },
+            gaussInverse(x, y, L0) {
+                const a = this.krasovsky.a, e2 = this.krasovsky.e2, e4 = this.krasovsky.e4, e6 = this.krasovsky.e6;
+                y -= 500000;
+                const m0 = x;
+                let B0 = m0 / (a * (1 - e2/4 - 3*e4/64 - 5*e6/256));
+                for (let i=0; i<5; i++) {
+                    const sin2B = Math.sin(2*B0);
+                    const dB = (m0 - a * ((1 - e2/4 - 3*e4/64 - 5*e6/256)*B0
+                        - (3*e2/8 + 3*e4/32 + 45*e6/1024)*sin2B
+                        + (15*e4/256 + 45*e6/1024)*Math.sin(4*B0)
+                        - (35*e6/3072)*Math.sin(6*B0))) / (a * Math.cos(B0));
+                    B0 += dB;
+                }
+                const radB0 = B0;
+                const sinB0 = Math.sin(radB0), cosB0 = Math.cos(radB0), tanB0 = Math.tan(radB0);
+                const N0 = a / Math.sqrt(1 - e2 * sinB0 * sinB0);
+                const T0 = tanB0 * tanB0;
+                const C0 = e2 * cosB0 * cosB0 / (1 - e2);
+                const M0 = a * (1 - e2) / Math.pow(1 - e2 * sinB0 * sinB0, 1.5);
+                const D = y / N0;
+                const D2 = D*D, D3 = D2*D, D4 = D3*D, D5 = D4*D, D6 = D5*D;
+                const B = radB0 - N0 * tanB0 / M0 * (D2/2 - (5 + 3*T0 + 10*C0 - 4*C0*C0 - 9*e2)*D4/24
+                    + (61 + 90*T0 + 298*C0 + 45*T0*T0 - 252*e2 - 3*C0*C0)*D6/720);
+                const L = this.deg2rad(L0) + D / cosB0 * (1 - (1 + 2*T0 + C0)*D2/6
+                    + (5 + 6*C0 + 28*T0 - 3*C0*C0 + 8*e2 + 24*T0*T0)*D4/120);
+                return [this.rad2deg(B), this.rad2deg(L)];
+            }
+        };
+
+        // ======================== 地图渲染 ========================
+        function renderMap(regionKey = 'all') {
+            if (!mergedGeoData) return;
+            currentRegion = regionKey;
+            const features = getRegionFeatures(regionKey);
+            if (!features) return;
+            const isFiltered = regionKey !== 'all';
+            showLabel = isFiltered;
+            const mapData = getMapData(regionKey, currentDataType);
+            const geoJson = { type: 'FeatureCollection', features: features };
+            echarts.registerMap('china', geoJson);
+
+            const config = REGION_ZOOM_CONFIG[regionKey] || REGION_ZOOM_CONFIG.all;
+            const mapZoom = config.zoom;
+            const mapCenter = config.center;
+            const mapLayoutCenter = config.layoutCenter;
+            const mapLayoutSize = config.layoutSize;
+
+            const whiteblock = document.getElementById('whiteblock');
+            if (whiteblock) whiteblock.style.display = isFiltered ? 'none' : 'block';
+
+            const visualConfig = COLOR_CONFIGS[currentDataType];
+            const option = {
+                backgroundColor: '#fff',
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const val = params.value;
+                        const text = (val !== null && val !== undefined && !isNaN(val)) ? val + ' ' + visualConfig.unit : '暂无数据';
+                        const title = currentDataType === 'PM25' ? 'PM2.5浓度' : 'O₃浓度';
+                        return '<div style="padding:8px;"><strong>' + params.name + '</strong><br/>' + title + ': ' + text + '</div>';
+                    },
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    borderColor: '#e0e0e0',
+                    borderWidth: 1,
+                    textStyle: { color: '#333' },
+                    padding: [10, 15]
+                },
+                visualMap: {
+                    type: 'piecewise',
+                    show: legendVisible,
+                    left: 'left',
+                    top: 'bottom',
+                    min: visualConfig.min,
+                    max: visualConfig.max,
+                    pieces: visualConfig.pieces,
+                    textStyle: { color: '#666' },
+                    itemWidth: 15,
+                    itemHeight: 20
+                },
+                series: [{
+                    name: visualConfig.title,
+                    type: 'map',
+                    map: 'china',
+                    roam: roamEnabled,
+                    zoom: mapZoom,
+                    center: mapCenter,
+                    layoutCenter: mapLayoutCenter,
+                    layoutSize: mapLayoutSize,
+                    projection: {
+                        project: function(point) {
+                            const [lng, lat] = point;
+                            const [B54, L54] = GaussProjection.wgs84ToBj54(lat, lng);
+                            const [X, Y] = GaussProjection.gaussForward(B54, L54, 110);
+                            const offsetX = -550000, offsetY = 3800000, scale = 0.00005;
+                            return [(Y - offsetX) * scale, -(X - offsetY) * scale];
+                        },
+                        unproject: function(px) {
+                            const offsetX = -550000, offsetY = 3800000, scale = 0.00005;
+                            const Y = px[0] / scale + offsetX;
+                            const X = -px[1] / scale + offsetY;
+                            const [B54, L54] = GaussProjection.gaussInverse(X, Y, 110);
+                            const [lng, lat] = GaussProjection.bj54ToWgs84(B54, L54);
+                            return [lng, lat];
+                        }
+                    },
+                    data: mapData,
+                    label: {
+                        show: showLabel,
+                        fontSize: 12,
+                        formatter: p => p.name,
+                        color: function(params) {
+                            const val = params.value;
+                            return (val !== null && val !== undefined && val >= 31) ? '#fff' : '#333';
+                        }
+                    },
+                    itemStyle: {
+                        normal: {
+                            borderColor: function(params) {
+                                const val = params.value;
+                                return (val !== null && val !== undefined && val > 25 && val <= 30) ? '#D8EE2C' : '#fff';
+                            },
+                            borderWidth: function(params) {
+                                const val = params.value;
+                                return (val !== null && val !== undefined && val > 25 && val <= 30) ? 3 : 0.5;
+                            },
+                            borderType: function(params) {
+                                const val = params.value;
+                                return (val !== null && val !== undefined && val > 25 && val <= 30) ? 'dashed' : 'solid';
+                            }
+                        }
+                    },
+                    regions: [
+                        { name: '南海诸岛', itemStyle: { normal: { opacity:0, borderWidth:0, borderColor:'transparent' } }, label: { show: false } }
+                    ]
+                }]
+            };
+
+            chart.setOption(option, true);
+            updateTitle(regionKey);
+            updateDataList(regionKey);
+
+            const paramsPanel = document.getElementById('map-params');
+            if (roamEnabled) {
+                paramsPanel.classList.remove('hidden');
+                updateParamsPanel(regionKey, mapZoom, mapCenter, mapLayoutCenter, mapLayoutSize);
+            } else {
+                paramsPanel.classList.add('hidden');
+            }
+
+            addMapImages(isFiltered);
+
+            chart.off('finished');
+            chart.on('finished', function() {
+                chart.resize();
+                renderBoundaryOverlay();
+                chart.off('finished');
+            });
+
+            bindChartEvents(regionKey);
+        }
+
+        // ======================== 辅助UI函数 ========================
+        function updateTitle(regionKey) {
+            const regionName = REGION_NAMES[regionKey] || '全国';
+            const dataTypeText = currentDataType === 'PM25' ? 'PM<span class="pm25-subscript">2.5</span>' : 'O₃';
+            document.getElementById('map-title').innerHTML = currentYear + '年' + currentMonth + '月' + regionName + dataTypeText + '浓度';
+        }
+
+        function updateDataList(regionKey) {
+            const dataList = document.getElementById('data-list');
+            const currentData = currentDataType === 'PM25' ? pm25Data : o3Data;
+            let items = Object.keys(currentData).map(city => ({ city, value: currentData[city] }));
+            items.sort((a, b) => b.value - a.value);
+            if (regionKey !== 'all') {
+                const citySet = new Set(REGION_CITIES[regionKey] || []);
+                items = items.filter(item => citySet.has(item.city));
+            }
+            if (items.length === 0) {
+                dataList.innerHTML = '<li>暂无数据</li>';
+                return;
+            }
+            let html = '';
+            items.forEach(item => {
+                let cls = '';
+                if (currentDataType === 'PM25' && item.value > 25 && item.value <= 30) cls = ' highlight-row';
+                html += `<li class="${cls}"><span class="city-name">${item.city}</span><span class="city-value">${item.value}</span></li>`;
+            });
+            dataList.innerHTML = html;
+        }
+
+        function updateParamsPanel(regionKey, zoom, center, layoutCenter, layoutSize) {
+            document.getElementById('params-region').textContent = REGION_NAMES[regionKey] || '全国';
+            document.getElementById('params-zoom').textContent = typeof zoom === 'number' ? zoom.toFixed(2) : zoom;
+            document.getElementById('params-center').textContent = Array.isArray(center) ? '[' + center.map(v => typeof v === 'number' ? v.toFixed(4) : v).join(', ') + ']' : center;
+            document.getElementById('params-layout-center').textContent = Array.isArray(layoutCenter) ? '[' + layoutCenter.map(v => typeof v === 'number' ? v.toFixed(2) : v).join(', ') + ']' : layoutCenter;
+            document.getElementById('params-layout-size').textContent = typeof layoutSize === 'number' ? layoutSize.toFixed(2) : layoutSize;
+        }
+
+        function addMapImages(isFullMode) {
+            const mapContainer = document.getElementById('map');
+            if (!legendImg) {
+                legendImg = document.createElement('img');
+                legendImg.className = 'map-legend';
+                legendImg.alt = 'Legend';
+                mapContainer.appendChild(legendImg);
+            }
+            const src = COLOR_CONFIGS[currentDataType].legendSrc;
+            if (legendImg.src !== src) legendImg.src = src;
+            legendImg.classList.toggle('full-mode', isFullMode);
+
+            if (!logoImg) {
+                logoImg = document.createElement('img');
+                logoImg.src = 'assets/LOGO.png';
+                logoImg.className = 'map-logo';
+                logoImg.alt = 'Logo';
+                mapContainer.appendChild(logoImg);
+            }
+        }
+
+        // ======================== 边界覆盖层（SVG） ========================
+        function renderBoundaryOverlay() {
+            const mapWrapper = document.querySelector('.map-wrapper');
+            let svg = document.querySelector('.boundary-overlay');
+            if (!svg) {
+                svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'boundary-overlay');
+                svg.setAttribute('width', mapWrapper.offsetWidth);
+                svg.setAttribute('height', mapWrapper.offsetHeight);
+                mapWrapper.appendChild(svg);
+            } else {
+                while (svg.firstChild) svg.removeChild(svg.firstChild);
+                svg.setAttribute('width', mapWrapper.offsetWidth);
+                svg.setAttribute('height', mapWrapper.offsetHeight);
+            }
+
+            const coordSys = getCoordSystem();
+            if (!coordSys) return;
+
+            const getPixel = (lng, lat) => coordSys.dataToPoint ? coordSys.dataToPoint([lng, lat]) : [lng, lat];
+
+            function drawPath(coords, color, width, fill) {
+                if (!coords || coords.length < 2) return;
+                let d = '';
+                const first = getPixel(coords[0][0], coords[0][1]);
+                d += 'M ' + first[0] + ',' + first[1];
+                for (let i = 1; i < coords.length; i++) {
+                    const p = getPixel(coords[i][0], coords[i][1]);
+                    d += ' L ' + p[0] + ',' + p[1];
+                }
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', d);
+                path.setAttribute('fill', fill || 'none');
+                path.setAttribute('stroke', color);
+                path.setAttribute('stroke-width', width);
+                svg.appendChild(path);
+            }
+
+            if (nanhaiGeoData && nanhaiGeoData.features) {
+                nanhaiGeoData.features.forEach(f => {
+                    if (f.geometry && f.geometry.type === 'MultiLineString') {
+                        f.geometry.coordinates.forEach(ring => {
+                            if (ring.length >= 2) drawPath(ring, nanhaiStrokeColor, nanhaiStrokeWidth);
+                        });
+                    }
+                });
+            }
+
+            if (twhnGeoData && twhnGeoData.features) {
+                twhnGeoData.features.forEach(f => {
+                    if (f.geometry && f.geometry.type === 'MultiPolygon') {
+                        f.geometry.coordinates.forEach(polygon => {
+                            polygon.forEach(ring => {
+                                if (ring.length >= 4) {
+                                    const closed = ring.slice();
+                                    closed.push(closed[0]);
+                                    drawPath(closed, twhnStrokeColor, twhnStrokeWidth, '#C8C8C8');
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+        }
+
+        function getCoordSystem() {
+            const series = chart.getModel().getSeries();
+            for (let s of series) {
+                if (s.coordinateSystem) return s.coordinateSystem;
+            }
+            return null;
+        }
+
+        // ======================== 图表事件绑定 ========================
+        function bindChartEvents(regionKey) {
+            chart.off('geoRoam');
+            if (roamEnabled) {
+                chart.on('geoRoam', function() {
+                    const series = chart.getModel().getSeries()[0];
+                    if (series && series.coordinateSystem) {
+                        const coordSys = series.coordinateSystem;
+                        const zoom = coordSys.getZoom ? coordSys.getZoom() : (coordSys._zoom || 1);
+                        const center = coordSys.getCenter ? coordSys.getCenter() : (coordSys._center || [110, 30]);
+                        const opt = chart.getOption();
+                        const sOpt = opt.series && opt.series[0];
+                        updateParamsPanel(regionKey, zoom, center, sOpt ? sOpt.layoutCenter : [600,380], sOpt ? sOpt.layoutSize : 720);
+                    }
+                });
+            }
+
+            chart.off('click');
+            chart.on('click', function(params) {
+                if (!roamEnabled) return;
+                const name = params.name || '';
+                let adcode = '-', cityCode = '-', center = '-', bbox = '-', index = '-';
+                if (mergedGeoData && mergedGeoData.features) {
+                    for (let i = 0; i < mergedGeoData.features.length; i++) {
+                        const f = mergedGeoData.features[i];
+                        if ((f.properties.name || '') === name) {
+                            adcode = f.properties.adcode || '-';
+                            cityCode = f.properties.CityCode || '-';
+                            index = i;
+                            const coords = f.geometry.coordinates;
+                            if (coords && coords.length) {
+                                let allPts = [];
+                                (function collect(arr) {
+                                    if (typeof arr[0] === 'number') allPts.push(arr);
+                                    else arr.forEach(a => collect(a));
+                                })(coords);
+                                if (allPts.length) {
+                                    const lngs = allPts.map(p => p[0]), lats = allPts.map(p => p[1]);
+                                    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+                                    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+                                    center = '[' + ((minLng+maxLng)/2).toFixed(4) + ', ' + ((minLat+maxLat)/2).toFixed(4) + ']';
+                                    bbox = '[' + minLng.toFixed(2) + ', ' + minLat.toFixed(2) + '] - [' + maxLng.toFixed(2) + ', ' + maxLat.toFixed(2) + ']';
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                document.getElementById('params-click-name').textContent = name;
+                document.getElementById('params-click-adcode').textContent = adcode;
+                document.getElementById('params-click-citycode').textContent = cityCode;
+                document.getElementById('params-click-center').textContent = center;
+                document.getElementById('params-click-bbox').textContent = bbox;
+                document.getElementById('params-click-index').textContent = index;
+            });
+        }
+
+        // ======================== 数据初始化 ========================
+        async function initApp() {
+            try {
+                // 并行加载所有数据（这里只加载了重庆作为直辖市示例，实际可扩展）
+                const [csvData, chinaGeo, nanhaiGeo, twhnGeo, chongqingGeo] = await Promise.all([
+                    loadCSV('data/pm25demo.csv'),
+                    loadGeoJSON('data/update_china.geojson'),
+                    loadGeoJSON('data/update_nanhai.geojson'),
+                    loadGeoJSON('data/update_twhn.geojson'),
+                    loadGeoJSON('data/chongqing.geojson')
+                ]);
+
+                pm25Data = csvData.pm25;
+                o3Data = csvData.o3;
+                nanhaiGeoData = nanhaiGeo;
+                twhnGeoData = twhnGeo;
+
+                const municipalityGeoData = { '500000': chongqingGeo };
+                mergedGeoData = mergeMunicipalities(chinaGeo, municipalityGeoData);
+
+                if (twhnGeo && twhnGeo.features) {
+                    const valid = twhnGeo.features.filter(f => f.geometry && f.geometry.coordinates && f.geometry.coordinates.length > 0);
+                    valid.forEach((f, idx) => {
+                        if (!f.properties.name) f.properties.name = '南海诸岛_' + (idx+1);
+                    });
+                    mergedGeoData.features = mergedGeoData.features.concat(valid);
+                }
+
+                clearCaches();
+
+                // 隐藏加载提示
+                const loadingEl = document.getElementById('loading-text');
+                if (loadingEl) loadingEl.style.display = 'none';
+
+                renderMap('all');
+
+            } catch (err) {
+                console.error('初始化失败:', err);
+                const loadingEl = document.getElementById('loading-text');
+                if (loadingEl) {
+                    loadingEl.textContent = '加载失败，请刷新重试';
+                } else {
+                    // 若元素不存在，创建一个提示
+                    const map = document.getElementById('map');
+                    const div = document.createElement('div');
+                    div.className = 'loading';
+                    div.textContent = '加载失败，请刷新重试';
+                    map.appendChild(div);
+                }
+            }
+        }
+
+        function mergeMunicipalities(geoData, municipalityGeoData) {
+            const mCodePrefixes = ['11','12','31','50'];
+            const filteredFeatures = geoData.features.filter(f => {
+                const cityCode = f.properties.CityCode ? f.properties.CityCode.toString() : '';
+                const outputCity = f.properties.output_City || '';
+                if (cityCode === '100000_JD') return false;
+                if (!outputCity) return false;
+                if (!f.geometry || !f.geometry.coordinates || f.geometry.coordinates.length === 0) return false;
+                const prefix = cityCode.substring(0,2);
+                if (mCodePrefixes.indexOf(prefix) !== -1 && municipalityGeoData[prefix + '0000']) return false;
+                return true;
+            });
+            const merged = filteredFeatures.slice();
+            for (let prefix of mCodePrefixes) {
+                const code = prefix + '0000';
+                const data = municipalityGeoData[code];
+                if (data && data.features && data.features.length) {
+                    merged.push(data.features[0]);
+                }
+            }
+            return { type: 'FeatureCollection', features: merged };
+        }
+
+        // ======================== UI事件绑定 ========================
+        function setupUIEvents() {
+            const regionBtns = {
+                'btn-all': 'all',
+                'btn-jjj': 'JJJ',
+                'btn-cy': 'CY',
+                'btn-fw': 'FW',
+                'btn-csj': 'CSJ',
+                'btn-zsj': 'ZSJ'
+            };
+            Object.keys(regionBtns).forEach(id => {
+                document.getElementById(id).addEventListener('click', function() {
+                    const key = regionBtns[id];
+                    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    renderMap(key);
+                });
+            });
+
+            document.getElementById('btn-pm25').addEventListener('click', function() {
+                currentDataType = 'PM25';
+                document.getElementById('btn-o3').classList.remove('active');
+                this.classList.add('active');
+                document.getElementById('btn-zsj').classList.add('hidden');
+                renderMap(currentRegion);
+            });
+            document.getElementById('btn-o3').addEventListener('click', function() {
+                currentDataType = 'O3';
+                document.getElementById('btn-pm25').classList.remove('active');
+                this.classList.add('active');
+                document.getElementById('btn-zsj').classList.remove('hidden');
+                renderMap(currentRegion);
+            });
+
+            document.getElementById('btn-csv-select').addEventListener('click', () => {
+                document.getElementById('csv-file-input').click();
+            });
+            document.getElementById('csv-file-input').addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.name.match(/^\d{6}\.csv$/)) {
+                    alert('文件名格式不正确，请使用"YYYYMM.csv"格式');
+                    return;
+                }
+                try {
+                    const result = await loadCSVFromFile(file);
+                    pm25Data = result.pm25;
+                    o3Data = result.o3;
+                    const match = file.name.match(/^(\d{4})(\d{2})/);
+                    if (match) {
+                        currentYear = match[1];
+                        currentMonth = parseInt(match[2], 10).toString();
+                    }
+                    clearCaches();
+                    renderMap(currentRegion);
+                    alert('CSV文件加载成功！');
+                } catch (err) {
+                    alert('CSV解析失败: ' + err.message);
+                }
+                this.value = '';
+            });
+
+            document.getElementById('btn-download').addEventListener('click', function() {
+                const container = document.querySelector('.map-wrapper');
+                html2canvas(container, { backgroundColor: '#fff', scale: 2, useCORS: true, allowTaint: true })
+                    .then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = 'PM25地图_' + currentYear + currentMonth + '.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('下载失败，请重试');
+                    });
+            });
+
+            document.getElementById('btn-roam-toggle').addEventListener('click', function() {
+                roamEnabled = !roamEnabled;
+                chart.setOption({ series: [{ roam: roamEnabled }] });
+                const panel = document.getElementById('map-params');
+                if (roamEnabled) {
+                    panel.classList.remove('hidden');
+                    this.textContent = '关闭拖动和缩放';
+                    this.classList.add('active');
+                    const series = chart.getModel().getSeries()[0];
+                    if (series && series.coordinateSystem) {
+                        const zoom = series.coordinateSystem.getZoom ? series.coordinateSystem.getZoom() : 1;
+                        const center = series.coordinateSystem.getCenter ? series.coordinateSystem.getCenter() : [110,30];
+                        const opt = chart.getOption();
+                        const sOpt = opt.series && opt.series[0];
+                        updateParamsPanel(currentRegion, zoom, center, sOpt ? sOpt.layoutCenter : [600,380], sOpt ? sOpt.layoutSize : 720);
+                    }
+                } else {
+                    panel.classList.add('hidden');
+                    this.textContent = '开启拖动和缩放';
+                    this.classList.remove('active');
+                }
+                bindChartEvents(currentRegion);
+            });
+
+            document.getElementById('btn-legend').addEventListener('click', function() {
+                legendVisible = !legendVisible;
+                chart.setOption({ visualMap: { show: legendVisible } });
+                this.classList.toggle('active');
+            });
+
+            document.getElementById('btn-stroke-settings').addEventListener('click', function() {
+                document.querySelector('.stroke-settings').classList.toggle('hidden');
+                this.classList.toggle('active');
+            });
+
+            document.getElementById('btn-apply-stroke').addEventListener('click', function() {
+                nanhaiStrokeColor = document.getElementById('nanhai-color').value;
+                nanhaiStrokeWidth = parseFloat(document.getElementById('nanhai-width').value);
+                twhnStrokeColor = document.getElementById('twhn-color').value;
+                twhnStrokeWidth = parseFloat(document.getElementById('twhn-width').value);
+                renderBoundaryOverlay();
+            });
+        }
+
+        // ======================== 启动 ========================
+        document.addEventListener('DOMContentLoaded', function() {
+            setupUIEvents();
+            initApp();
+        });
+
+        window.addEventListener('resize', function() {
+            if (chart) chart.resize();
+        });
+    </script>
+</body>
+</html>
