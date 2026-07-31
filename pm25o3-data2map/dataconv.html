@@ -28,6 +28,13 @@
             font-size: 14px;
             transition: 0.2s;
         }
+        #btnDownloadTemplate {
+            background: #607D8B;
+            color: white;
+        }
+        #btnDownloadTemplate:hover {
+            background: #546E7A;
+        }
         #btnLoadMK {
             background: #2196F3;
             color: white;
@@ -72,13 +79,14 @@
         .table-scroll {
             height: 400px;
             overflow-y: auto;
-            will-change: scroll-position; /* 滚动性能优化 */
+            will-change: scroll-position;
         }
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        th, td {
+        th,
+        td {
             border: 1px solid #e0e0e0;
             padding: 8px 10px;
             font-size: 13px;
@@ -104,7 +112,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -123,8 +131,8 @@
             width: 100%;
             height: 300px;
             padding: 10px;
-            font-size:13px;
-            border:1px solid #ccc;
+            font-size: 13px;
+            border: 1px solid #ccc;
         }
         .modal-btns {
             display: flex;
@@ -132,17 +140,29 @@
             justify-content: flex-end;
         }
         .tip-text {
-            color:#666;
-            font-size:13px;
+            color: #666;
+            font-size: 13px;
+        }
+        .template-hint {
+            font-size: 13px;
+            color: #555;
+            background: #f0f4f9;
+            padding: 8px 14px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-left: 6px;
         }
     </style>
 </head>
 <body>
     <div class="btn-group">
+        <!-- 新增：下载模板按钮 -->
+        <button id="btnDownloadTemplate">📄 下载模板</button>
         <button id="btnLoadMK">加载 MK 数据</button>
         <button id="btnLoadDept">加载部里数据（CSV文件/粘贴逗号CSV文本）</button>
         <button id="btnUpdate" disabled>更新</button>
         <button id="btnExport" disabled>导出</button>
+        <span class="template-hint">模板含「排名、城市、PM25、O3」四列</span>
     </div>
 
     <!-- 文件输入 -->
@@ -163,7 +183,8 @@
                     1.在豆包里上传部里数据图片。<br>
                     2.输入提示词：“图片中的内容识别处理啊并以 csv 格式输出，需要 “序号”“城市”“5 月 PM2.5 浓度（微克 / 立方米）” 三列的内容”<br>
                     3.将输出的csv文本复制。<br>
-                    4.点击上传CSV或粘贴逗号表格文本导入</div>
+                    4.点击上传CSV或粘贴逗号表格文本导入
+                </div>
             </div>
         </div>
         <div class="table-box">
@@ -180,9 +201,9 @@
         let list2Data = [];
         let cityPm25Map = {};
         let list3Data = [];
-        // 同步滚动锁，防止循环触发卡顿
         let isSyncing = false;
 
+        const btnDownloadTemplate = document.getElementById('btnDownloadTemplate');
         const btnLoadMK = document.getElementById('btnLoadMK');
         const btnLoadDept = document.getElementById('btnLoadDept');
         const btnUpdate = document.getElementById('btnUpdate');
@@ -195,54 +216,78 @@
 
         // ========== 同步滚动绑定 ==========
         function bindSyncScroll() {
-            // 列表1滚动同步列表3
-            wrap1.addEventListener('scroll', function(){
-                if(isSyncing) return;
+            wrap1.addEventListener('scroll', function() {
+                if (isSyncing) return;
                 isSyncing = true;
                 wrap3.scrollTop = wrap1.scrollTop;
-                setTimeout(function(){ isSyncing = false; }, 50);
+                setTimeout(function() { isSyncing = false; }, 50);
             });
-            // 列表3滚动同步列表1
-            wrap3.addEventListener('scroll', function(){
-                if(isSyncing) return;
+            wrap3.addEventListener('scroll', function() {
+                if (isSyncing) return;
                 isSyncing = true;
                 wrap1.scrollTop = wrap3.scrollTop;
-                setTimeout(function(){ isSyncing = false; }, 50);
+                setTimeout(function() { isSyncing = false; }, 50);
             });
         }
-        // 页面加载完成绑定滚动监听
         bindSyncScroll();
 
-        btnLoadMK.onclick = function(){
+        // ========== 下载模板 ==========
+        btnDownloadTemplate.onclick = function() {
+            // 生成符合 MK 数据加载规则的 CSV 样例
+            const header = '排名,城市,PM25,O3';
+            const rows = [
+                '1,北京市,25.6,120.5',
+                '2,上海市,22.3,115.2',
+                '3,广州市,18.7,108.3',
+                '4,深圳市,16.2,102.7',
+                '5,杭州市,20.1,110.4',
+                '6,成都市,24.8,118.6',
+                '7,武汉市,21.5,112.0',
+                '8,南京市,19.4,105.8',
+                '9,重庆市,23.0,116.3',
+                '10,西安市,26.2,122.1'
+            ];
+            const csvContent = [header, ...rows].join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'MK数据模板.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        };
+
+        // ========== 原有功能 ==========
+        btnLoadMK.onclick = function() {
             fileMK.click();
         };
 
-        // 部里数据弹窗
-        btnLoadDept.onclick = function(){
+        btnLoadDept.onclick = function() {
             const mask = document.createElement('div');
             mask.className = 'modal-mask';
             mask.innerHTML = `
-                <div class="modal-box">
-                    <h4>导入部里数据</h4>
-                    <p class="tip-text">方式1：上传CSV文件；方式2：粘贴逗号分隔表格文本（如：序号,城市,PM2.5）</p>
-                    <textarea id="textInput" placeholder="粘贴示例：
-序号,城市,5月PM2.5浓度（微克/立方米）
-1,北京市,23.6
-2,天津市,24.5"></textarea>
-                    <div class="modal-btns">
-                        <button id="uploadCsv" style="background:#009688;color:white">上传CSV</button>
-                        <button id="parseText" style="background:#2196F3;color:white">解析粘贴文本</button>
-                        <button id="closeModal" style="background:#999;color:white">取消</button>
+                    <div class="modal-box">
+                        <h4>导入部里数据</h4>
+                        <p class="tip-text">方式1：上传CSV文件；方式2：粘贴逗号分隔表格文本（如：序号,城市,PM2.5）</p>
+                        <textarea id="textInput" placeholder="粘贴示例：
+        序号,城市,5月PM2.5浓度（微克/立方米）
+        1,北京市,23.6
+        2,天津市,24.5"></textarea>
+                        <div class="modal-btns">
+                            <button id="uploadCsv" style="background:#009688;color:white">上传CSV</button>
+                            <button id="parseText" style="background:#2196F3;color:white">解析粘贴文本</button>
+                            <button id="closeModal" style="background:#999;color:white">取消</button>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
             document.body.appendChild(mask);
 
-            document.getElementById('uploadCsv').onclick = function(){
+            document.getElementById('uploadCsv').onclick = function() {
                 mask.remove();
                 fileDeptCsv.click();
             };
-            document.getElementById('parseText').onclick = function(){
+            document.getElementById('parseText').onclick = function() {
                 const txt = document.getElementById('textInput').value.trim();
                 mask.remove();
                 if (!txt) {
@@ -257,13 +302,12 @@
                 setList2Data(data);
                 alert(`文本解析完成，共${data.length}条城市数据`);
             };
-            document.getElementById('closeModal').onclick = function(){
+            document.getElementById('closeModal').onclick = function() {
                 mask.remove();
             };
         };
 
-        // 读取MK CSV
-        fileMK.onchange = async function(e){
+        fileMK.onchange = async function(e) {
             const file = e.target.files[0];
             if (!file) return;
             const text = await readFile(file);
@@ -281,8 +325,7 @@
             fileMK.value = '';
         };
 
-        // 读取部里CSV
-        fileDeptCsv.onchange = async function(e){
+        fileDeptCsv.onchange = async function(e) {
             const file = e.target.files[0];
             if (!file) return;
             const text = await readFile(file);
@@ -292,31 +335,30 @@
             fileDeptCsv.value = '';
         };
 
-        // 解析逗号分隔粘贴文本
         function parseRawText(text) {
             let rawLines = text.split(/\r?\n/);
             let lines = [];
-            for(let i = 0; i < rawLines.length; i++){
+            for (let i = 0; i < rawLines.length; i++) {
                 let lineStr = rawLines[i].trim();
-                if(lineStr !== ''){
+                if (lineStr !== '') {
                     lines.push(lineStr);
                 }
             }
-            if(lines.length <= 1){
+            if (lines.length <= 1) {
                 return [];
             }
             const res = [];
-            for(let i = 1; i < lines.length; i++){
+            for (let i = 1; i < lines.length; i++) {
                 let line = lines[i];
                 let cells = line.split(',');
-                if(cells.length < 3){
+                if (cells.length < 3) {
                     cells = line.split(/\s+/);
                 }
                 let idxStr = cells[0].trim();
                 let cityStr = cells[1].trim();
                 let pmStr = cells[2].trim();
                 let pmVal = parseFloat(pmStr);
-                if(!/^\d+$/.test(idxStr) || cityStr === '' || isNaN(pmVal)){
+                if (!/^\d+$/.test(idxStr) || cityStr === '' || isNaN(pmVal)) {
                     continue;
                 }
                 res.push({
@@ -329,11 +371,10 @@
             return res;
         }
 
-        // 赋值列表2并刷新
         function setList2Data(data) {
             list2Data = data;
             cityPm25Map = {};
-            for(let i=0; i<data.length; i++){
+            for (let i = 0; i < data.length; i++) {
                 const item = data[i];
                 cityPm25Map[item.city.trim()] = Number(item.pm25);
             }
@@ -343,19 +384,18 @@
             btnExport.disabled = true;
         }
 
-        // 更新对比逻辑
-        btnUpdate.onclick = function(){
+        btnUpdate.onclick = function() {
             if (list1Data.length === 0) {
                 alert("请先加载MK基准数据！");
                 return;
             }
             list3Data = [];
-            for(let i=0; i<list1Data.length; i++){
+            for (let i = 0; i < list1Data.length; i++) {
                 const item = list1Data[i];
                 const city = item.city.trim();
                 const oldPm = Number(item.pm25);
                 let newPm = oldPm;
-                if(cityPm25Map.hasOwnProperty(city)){
+                if (cityPm25Map.hasOwnProperty(city)) {
                     newPm = cityPm25Map[city];
                 }
                 const isDiff = oldPm !== newPm;
@@ -371,14 +411,13 @@
             renderTable3();
             btnExport.disabled = false;
             let diffCount = 0;
-            for(let i=0; i<list3Data.length; i++){
-                if(list3Data[i].isDiff) diffCount++;
+            for (let i = 0; i < list3Data.length; i++) {
+                if (list3Data[i].isDiff) diffCount++;
             }
             alert(`对比完成，总${list3Data.length}条，PM25变动${diffCount}条`);
         };
 
-        // 导出CSV
-        btnExport.onclick = function(){
+        btnExport.onclick = function() {
             if (!list3Data.length) {
                 alert("请先生成对比结果！");
                 return;
@@ -387,7 +426,7 @@
             if (!fileName) return;
             if (!fileName.endsWith(".csv")) fileName += ".csv";
             let csvText = "城市,PM25,O3\n";
-            for(let i=0; i<list3Data.length; i++){
+            for (let i = 0; i < list3Data.length; i++) {
                 const row = list3Data[i];
                 csvText += row.city + "," + row.newPm25 + "," + row.o3 + "\n";
             }
@@ -399,43 +438,41 @@
             URL.revokeObjectURL(a.href);
         };
 
-        // 读取文件
         function readFile(file) {
-            return new Promise(function(resolve){
+            return new Promise(function(resolve) {
                 const reader = new FileReader();
                 reader.readAsText(file, "utf-8");
-                reader.onload = function(e){
+                reader.onload = function(e) {
                     resolve(e.target.result);
                 };
             });
         }
 
-        // 标准CSV解析（MK文件）
         function parseCsv(text, needCols) {
             const rawLines = text.split(/\r?\n/);
             let lines = [];
-            for(let i=0; i<rawLines.length; i++){
+            for (let i = 0; i < rawLines.length; i++) {
                 const s = rawLines[i].trim();
-                if(s) lines.push(s);
+                if (s) lines.push(s);
             }
             if (lines.length < 2) {
                 alert("CSV无有效数据");
                 return [];
             }
-            const header = lines[0].split(',').map(function(h){
+            const header = lines[0].split(',').map(function(h) {
                 return h.trim();
             });
             const idxMap = {};
-            for(let i=0; i<needCols.length; i++){
+            for (let i = 0; i < needCols.length; i++) {
                 const col = needCols[i];
                 let targetIdx = -1;
-                for(let j=0; j<header.length; j++){
-                    if(header[j].indexOf(col) > -1){
+                for (let j = 0; j < header.length; j++) {
+                    if (header[j].indexOf(col) > -1) {
                         targetIdx = j;
                         break;
                     }
                 }
-                if(targetIdx === -1){
+                if (targetIdx === -1) {
                     alert(`CSV缺少列：${col}`);
                     return [];
                 }
@@ -456,45 +493,47 @@
             return result;
         }
 
-        // 渲染表格1
         function renderTable1() {
             if (list1Data.length === 0) {
                 wrap1.innerHTML = '<div class="empty-tip">请上传MK CSV</div>';
                 return;
             }
             let html = '<table><tr><th>序号</th><th>城市</th><th>PM25</th><th>O3</th></tr>';
-            for(let i=0; i<list1Data.length; i++){
+            for (let i = 0; i < list1Data.length; i++) {
                 const item = list1Data[i];
-                html += '<tr><td>' + item.index + '</td><td>' + item.city + '</td><td>' + item.pm25 + '</td><td>' + item.o3 + '</td></tr>';
+                html += '<tr><td>' + item.index + '</td><td>' + item.city + '</td><td>' + item.pm25 + '</td><td>' + item.o3 +
+                    '</td></tr>';
             }
             html += '</table>';
             wrap1.innerHTML = html;
         }
-        // 渲染表格2
+
         function renderTable2() {
             if (list2Data.length === 0) {
                 wrap2.innerHTML = '<div class="empty-tip">上传CSV/粘贴逗号文本导入</div>';
                 return;
             }
             let html = '<table><tr><th>序号</th><th>城市</th><th>PM25</th><th>O3</th></tr>';
-            for(let i=0; i<list2Data.length; i++){
+            for (let i = 0; i < list2Data.length; i++) {
                 const item = list2Data[i];
-                html += '<tr><td>' + item.index + '</td><td>' + item.city + '</td><td>' + item.pm25 + '</td><td>' + item.o3 + '</td></tr>';
+                html += '<tr><td>' + item.index + '</td><td>' + item.city + '</td><td>' + item.pm25 + '</td><td>' + item.o3 +
+                    '</td></tr>';
             }
             html += '</table>';
             wrap2.innerHTML = html;
         }
-        // 渲染表格3
+
         function renderTable3() {
             if (list3Data.length === 0) {
                 wrap3.innerHTML = '<div class="empty-tip">加载两份数据后点更新</div>';
                 return;
             }
             let html = '<table><tr><th>序号</th><th>城市</th><th>旧PM25</th><th>PM25</th><th>O3</th></tr>';
-            for(let i=0; i<list3Data.length; i++){
+            for (let i = 0; i < list3Data.length; i++) {
                 const item = list3Data[i];
                 const cls = item.isDiff ? 'diff-row' : '';
-                html += '<tr class="' + cls + '"><td>' + item.index + '</td><td>' + item.city + '</td><td>' + item.oldPm25 + '</td><td>' + item.newPm25 + '</td><td>' + item.o3 + '</td></tr>';
+                html += '<tr class="' + cls + '"><td>' + item.index + '</td><td>' + item.city + '</td><td>' + item.oldPm25 +
+                    '</td><td>' + item.newPm25 + '</td><td>' + item.o3 + '</td></tr>';
             }
             html += '</table>';
             wrap3.innerHTML = html;

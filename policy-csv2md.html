@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>政策CSV转Markdown+HTML预览工具</title>
-        <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="./css/styles.css">
 
     <style>
         * {
@@ -30,22 +30,35 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         h1 {
             color: #2d3748;
             font-size: 22px;
             margin: 0;
         }
-        .upload-box {
+        .upload-box, .template-btn {
             padding: 8px 16px;
-            background: #4299e1;
-            color: white;
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+            border: none;
+            display: inline-block;
+        }
+        .upload-box {
+            background: #4299e1;
+            color: white;
         }
         .upload-box:hover {
             background: #3182ce;
+        }
+        .template-btn {
+            background: #48bb78;
+            color: white;
+        }
+        .template-btn:hover {
+            background: #38a169;
         }
         #csvFile { display: none; }
         .btn {
@@ -59,7 +72,6 @@
             font-size: 13px;
         }
         .btn:hover { background: #3182ce; }
-        .btn-group { margin: 15px 0; }
         .tip {
             color: #718096;
             margin: 10px 0;
@@ -117,6 +129,11 @@
             flex-wrap: wrap;
             gap: 6px;
         }
+        .preview-title .btn-group-sm {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
 
         /* HTML 渲染样式 */
         .html-preview h1 { font-size: 20px; margin: 10px 0; color: #2c3e50; }
@@ -134,7 +151,31 @@
         .policy-desc { font-size: 13px; margin: 6px 0; color: #2d3436; }
         .policy-link { font-size: 12px; color: #2980b9; word-break: break-all; }
 
-        /* 响应式布局 */
+        /* 状态提示 */
+        .status-bar {
+            padding: 8px 14px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-size: 13px;
+            display: none;
+        }
+        .status-bar.success {
+            display: block;
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .status-bar.error {
+            display: block;
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .status-bar.info {
+            display: block;
+            background: #bee3f8;
+            color: #2a4365;
+        }
+
+        /* 响应式 */
         @media (max-width: 1200px) {
             .preview-wrapper {
                 flex-direction: column;
@@ -148,9 +189,6 @@
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
             .container {
                 padding: 15px;
             }
@@ -159,10 +197,9 @@
             }
             .header {
                 flex-direction: column;
-                gap: 10px;
                 align-items: flex-start;
             }
-            .upload-box {
+            .upload-box, .template-btn {
                 align-self: flex-start;
             }
             .btn {
@@ -175,17 +212,26 @@
                 padding: 12px;
             }
         }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
-            <div class="navbar">
-        <h1>政策列表政策列表CSV转网站格式</h1>
-        <button class="back-btn" onclick="window.location.href='index.html'">返回工具集</button>
-    </div>
+<div class="navbar">
+    <h1>政策列表CSV转网站格式</h1>
+    <button class="back-btn" onclick="window.location.href='index.html'">返回工具集</button>
+</div>
 <div class="container">
     <div class="header">
         <h1>📊 政策CSV → Markdown + HTML 预览工具</h1>
-        <label class="upload-box" for="csvFile">📁 上传CSV</label>
+        <div class="header-actions">
+            <label class="upload-box" for="csvFile">📁 上传CSV</label>
+            <button class="template-btn" id="downloadTemplate">📄 下载模板</button>
+        </div>
     </div>
     <div class="tip">
         功能：上传CSV → 生成【国家级】+【区域地方级】两份文档<br>
@@ -193,16 +239,15 @@
     </div>
     <input type="file" id="csvFile" accept=".csv">
 
-    <div class="btn-group">
-        <button class="btn" id="generateBtn">生成全部内容</button>
-    </div>
+    <!-- 状态提示 -->
+    <div id="statusBar" class="status-bar"></div>
 
     <!-- 双栏：国家级 -->
     <div class="preview-wrapper">
         <div class="preview-box">
             <div class="preview-title">
                 🟦 国家级政策
-                <div>
+                <div class="btn-group-sm">
                     <button class="btn" id="copyNationalMd">复制MD</button>
                     <button class="btn" id="copyNationalHtml">复制HTML代码</button>
                     <button class="btn" id="downloadNational">导出MD</button>
@@ -224,7 +269,7 @@
         <div class="preview-box">
             <div class="preview-title">
                 🟩 区域地方级政策
-                <div>
+                <div class="btn-group-sm">
                     <button class="btn" id="copyLocalMd">复制MD</button>
                     <button class="btn" id="copyLocalHtml">复制HTML代码</button>
                     <button class="btn" id="downloadLocal">导出MD</button>
@@ -245,178 +290,435 @@
 </div>
 
 <script>
-let csvData = [];
-const pn = document.getElementById('previewNational');
-const pl = document.getElementById('previewLocal');
-const htmlN = document.getElementById('htmlNational');
-const htmlL = document.getElementById('htmlLocal');
+    // ============================
+    // 1. 状态管理
+    // ============================
+    let csvData = [];
+    const pn = document.getElementById('previewNational');
+    const pl = document.getElementById('previewLocal');
+    const htmlN = document.getElementById('htmlNational');
+    const htmlL = document.getElementById('htmlLocal');
+    const statusBar = document.getElementById('statusBar');
 
-// CSV解析（支持引号内逗号）
-function parseCSV(text) {
-    const regex = /(?!\s*$)\s*([^,"\n\r]|"\n*[^"]*"\n*)*\s*(,|$)/g;
-    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-    const result = [];
-    if (lines.length === 0) return result;
-    const headers = lines[0].match(regex).map(h => h.replace(/,$/, '').trim().replace(/^"|"$/g, ''));
-    for (let i = 1; i < lines.length; i++) {
-        const row = {};
-        const values = lines[i].match(regex).map(v => {
-            let val = v.replace(/,$/, '').trim();
-            if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-            return val;
-        });
-        headers.forEach((h, idx) => row[h] = values[idx] || '');
-        result.push(row);
+    function showStatus(msg, type = 'info') {
+        statusBar.textContent = msg;
+        statusBar.className = 'status-bar ' + type;
     }
-    return result;
-}
 
-// 日期排序
-const sortByDate = arr => arr.sort((a, b) => new Date(a.date) - new Date(b.date));
+    function hideStatus() {
+        statusBar.className = 'status-bar';
+        statusBar.textContent = '';
+    }
 
-// 生成MD
-function buildNational(data) {
-    const list = data.filter(d => d['gj-qydf'] === '国家级');
-    const res = ['# 国家级'];
-    const c1Map = {};
-    list.forEach(it => { const c1 = it.class1 || ''; if (!c1Map[c1]) c1Map[c1] = []; c1Map[c1].push(it); });
-    Object.keys(c1Map).sort().forEach(c1 => {
-        res.push(`## ${c1}`);
-        const c2Map = {};
-        c1Map[c1].forEach(it => { const c2 = c1 === '2.政策制度体系' ? (it.class2 || '') : '_'; if (!c2Map[c2]) c2Map[c2] = []; c2Map[c2].push(it); });
-        Object.keys(c2Map).sort().forEach(c2 => {
-            if (c2 !== '_') res.push(`### ${c2}`);
-            sortByDate(c2Map[c2]).forEach(d => {
-                res.push('');
-                res.push(`${d.name}`);
-                res.push(`发布时间：${d.date}`);
-                res.push(`关键词：${d.keyword}`);
-                res.push(`${d.desc}`);
-                res.push(`${d.link}`);
-                res.push('');
+    // ============================
+    // 2. 稳健的CSV解析器（状态机，支持字段内换行）
+    // ============================
+    function parseCSV(text) {
+        // 移除 BOM
+        if (text.charCodeAt(0) === 0xFEFF) {
+            text = text.slice(1);
+        }
+
+        const rows = [];
+        let current = '';
+        let fields = [];
+        let inQuotes = false;
+        let i = 0;
+
+        while (i < text.length) {
+            const ch = text[i];
+            const next = text[i + 1];
+
+            if (inQuotes) {
+                // 处理引号内的内容
+                if (ch === '"') {
+                    // 双引号转义：两个连续双引号表示一个引号字符
+                    if (next === '"') {
+                        current += '"';
+                        i += 2;
+                        continue;
+                    } else {
+                        // 结束引号
+                        inQuotes = false;
+                        i++;
+                        continue;
+                    }
+                } else {
+                    current += ch;
+                    i++;
+                    continue;
+                }
+            } else {
+                // 不在引号内
+                if (ch === '"') {
+                    // 进入引号
+                    inQuotes = true;
+                    i++;
+                    continue;
+                } else if (ch === ',') {
+                    // 字段分隔符
+                    fields.push(current.trim());
+                    current = '';
+                    i++;
+                    continue;
+                } else if (ch === '\r') {
+                    // 可能遇到 \r\n
+                    if (next === '\n') {
+                        i++; // 跳过 \n
+                    }
+                    // 结束当前行
+                    fields.push(current.trim());
+                    // 过滤全空行（所有字段为空字符串）
+                    if (fields.some(f => f !== '')) {
+                        rows.push(fields);
+                    }
+                    fields = [];
+                    current = '';
+                    i++;
+                    continue;
+                } else if (ch === '\n') {
+                    // 结束当前行
+                    fields.push(current.trim());
+                    if (fields.some(f => f !== '')) {
+                        rows.push(fields);
+                    }
+                    fields = [];
+                    current = '';
+                    i++;
+                    continue;
+                } else {
+                    current += ch;
+                    i++;
+                    continue;
+                }
+            }
+        }
+
+        // 处理最后一个字段（文件末尾没有换行）
+        if (current !== '' || fields.length > 0) {
+            fields.push(current.trim());
+            if (fields.some(f => f !== '')) {
+                rows.push(fields);
+            }
+        }
+
+        if (rows.length === 0) {
+            showStatus('CSV文件为空或仅包含空行', 'error');
+            return [];
+        }
+
+        // 第一行作为表头
+        const headers = rows[0].map(h => h.trim());
+        // 数据行
+        const dataRows = rows.slice(1);
+
+        // 构建对象数组
+        const result = dataRows.map(row => {
+            const obj = {};
+            headers.forEach((h, idx) => {
+                obj[h] = (idx < row.length) ? row[idx] : '';
             });
+            return obj;
         });
-    });
-    return res.join('\n');
-}
 
-function buildLocal(data) {
-    const list = data.filter(d => d['gj-qydf'] === '区域地方级');
-    const res = ['# 区域地方级'];
-    const c1Map = {};
-    list.forEach(it => { const c1 = it.class1 || ''; if (!c1Map[c1]) c1Map[c1] = []; c1Map[c1].push(it); });
-    Object.keys(c1Map).sort().forEach(c1 => {
-        res.push(`## ${c1}`);
-        const c2Map = {};
-        c1Map[c1].forEach(it => { const c2 = c1 === '2.政策制度体系' ? (it.class2 || '') : '_'; if (!c2Map[c2]) c2Map[c2] = []; c2Map[c2].push(it); });
-        Object.keys(c2Map).sort().forEach(c2 => {
-            if (c2 !== '_') res.push(`### ${c2}`);
-            const provMap = {};
-            c2Map[c2].forEach(it => { const p = it.prov || '未知区域'; if (!provMap[p]) provMap[p] = []; provMap[p].push(it); });
-            Object.keys(provMap).sort().forEach(prov => {
-                res.push(`#### ${prov}`);
-                sortByDate(provMap[prov]).forEach(d => {
+        if (result.length === 0) {
+            showStatus('CSV解析成功，但没有有效数据行', 'info');
+        } else {
+            showStatus(`✅ 解析成功：共 ${result.length} 条政策数据`, 'success');
+        }
+
+        return result;
+    }
+
+    // ============================
+    // 3. 日期排序
+    // ============================
+    function sortByDate(arr) {
+        return arr.slice().sort((a, b) => {
+            const d1 = new Date(a.date);
+            const d2 = new Date(b.date);
+            if (isNaN(d1) && isNaN(d2)) return 0;
+            if (isNaN(d1)) return 1;
+            if (isNaN(d2)) return -1;
+            return d1 - d2;
+        });
+    }
+
+    // ============================
+    // 4. 生成Markdown
+    // ============================
+    function buildNational(data) {
+        const list = data.filter(d => d['gj-qydf'] === '国家级');
+        if (list.length === 0) return '# 国家级\n\n暂无国家级政策数据。';
+        const res = ['# 国家级'];
+        const c1Map = {};
+        list.forEach(it => {
+            const c1 = it.class1 || '未分类';
+            if (!c1Map[c1]) c1Map[c1] = [];
+            c1Map[c1].push(it);
+        });
+        Object.keys(c1Map).sort().forEach(c1 => {
+            res.push(`## ${c1}`);
+            const c2Map = {};
+            c1Map[c1].forEach(it => {
+                const c2 = (c1 === '2.政策制度体系') ? (it.class2 || '') : '_';
+                if (!c2Map[c2]) c2Map[c2] = [];
+                c2Map[c2].push(it);
+            });
+            Object.keys(c2Map).sort().forEach(c2 => {
+                if (c2 !== '_') res.push(`### ${c2}`);
+                const sorted = sortByDate(c2Map[c2]);
+                sorted.forEach(d => {
                     res.push('');
-                    res.push(`${d.name}`);
-                    res.push(`发布时间：${d.date}`);
-                    res.push(`关键词：${d.keyword}`);
-                    res.push(`${d.desc}`);
-                    res.push(`${d.link}`);
+                    res.push(`${d.name || '无标题'}`);
+                    res.push(`发布时间：${d.date || '未知'}`);
+                    res.push(`关键词：${d.keyword || '无'}`);
+                    res.push(`${d.desc || ''}`);
+                    if (d.link) res.push(`${d.link}`);
                     res.push('');
                 });
             });
         });
-    });
-    return res.join('\n');
-}
+        return res.join('\n');
+    }
 
-// MD 转 HTML
-function mdToHtml(md) {
-    let html = md.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
-    
-    const lines = html.split('\n');
-    let result = [];
-    let inItem = false;
-    let item = [];
-    
-    lines.forEach(line => {
-        const trimmed = line.trim();
-        if (!trimmed) {
-            if (inItem && item.length > 0) {
-                result.push(`<div class="policy-item">${item.join('')}</div>`);
-                item = [];
-                inItem = false;
+    function buildLocal(data) {
+        const list = data.filter(d => d['gj-qydf'] === '区域地方级');
+        if (list.length === 0) return '# 区域地方级\n\n暂无区域地方级政策数据。';
+        const res = ['# 区域地方级'];
+        const c1Map = {};
+        list.forEach(it => {
+            const c1 = it.class1 || '未分类';
+            if (!c1Map[c1]) c1Map[c1] = [];
+            c1Map[c1].push(it);
+        });
+        Object.keys(c1Map).sort().forEach(c1 => {
+            res.push(`## ${c1}`);
+            const c2Map = {};
+            c1Map[c1].forEach(it => {
+                const c2 = (c1 === '2.政策制度体系') ? (it.class2 || '') : '_';
+                if (!c2Map[c2]) c2Map[c2] = [];
+                c2Map[c2].push(it);
+            });
+            Object.keys(c2Map).sort().forEach(c2 => {
+                if (c2 !== '_') res.push(`### ${c2}`);
+                const provMap = {};
+                c2Map[c2].forEach(it => {
+                    const p = it.prov || '未知区域';
+                    if (!provMap[p]) provMap[p] = [];
+                    provMap[p].push(it);
+                });
+                Object.keys(provMap).sort().forEach(prov => {
+                    res.push(`#### ${prov}`);
+                    const sorted = sortByDate(provMap[prov]);
+                    sorted.forEach(d => {
+                        res.push('');
+                        res.push(`${d.name || '无标题'}`);
+                        res.push(`发布时间：${d.date || '未知'}`);
+                        res.push(`关键词：${d.keyword || '无'}`);
+                        res.push(`${d.desc || ''}`);
+                        if (d.link) res.push(`${d.link}`);
+                        res.push('');
+                    });
+                });
+            });
+        });
+        return res.join('\n');
+    }
+
+    // ============================
+    // 5. MD 转 HTML
+    // ============================
+    function mdToHtml(md) {
+        let html = md
+            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+
+        const lines = html.split('\n');
+        let result = [];
+        let inItem = false;
+        let item = [];
+
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed) {
+                if (inItem && item.length > 0) {
+                    result.push(`<div class="policy-item">${item.join('')}</div>`);
+                    item = [];
+                    inItem = false;
+                }
+                return;
             }
+            if (!inItem && !trimmed.startsWith('<h') && !trimmed.startsWith('#')) {
+                inItem = true;
+            }
+            if (inItem) {
+                if (item.length === 0) {
+                    item.push(`<div class="policy-name">${line}</div>`);
+                } else if (line.startsWith('发布时间：')) {
+                    item.push(`<div class="policy-meta">${line}</div>`);
+                } else if (line.startsWith('关键词：')) {
+                    item.push(`<div class="policy-meta">${line}</div>`);
+                } else if (line.startsWith('http://') || line.startsWith('https://')) {
+                    item.push(`<div class="policy-link"><a href="${line}" target="_blank">${line}</a></div>`);
+                } else {
+                    item.push(`<div class="policy-desc">${line}</div>`);
+                }
+            } else {
+                result.push(line);
+            }
+        });
+        if (inItem && item.length > 0) {
+            result.push(`<div class="policy-item">${item.join('')}</div>`);
+        }
+        return result.join('\n');
+    }
+
+    // ============================
+    // 6. 生成全部内容
+    // ============================
+    function generateAll() {
+        if (!csvData || csvData.length === 0) {
+            showStatus('⚠️ 请先上传并解析CSV文件', 'error');
             return;
         }
-        if (!inItem && !trimmed.startsWith('<h') && !trimmed.startsWith('#')) {
-            inItem = true;
-        }
-        if (inItem) {
-            if (item.length === 0) item.push(`<div class="policy-name">${line}</div>`);
-            else if (line.startsWith('发布时间：')) item.push(`<div class="policy-meta">${line}</div>`);
-            else if (line.startsWith('关键词：')) item.push(`<div class="policy-meta">${line}</div>`);
-            else if (line.startsWith('http')) item.push(`<div class="policy-link">${line}</div>`);
-            else item.push(`<div class="policy-desc">${line}</div>`);
-        } else {
-            result.push(line);
-        }
-    });
-    if (inItem && item.length > 0) {
-        result.push(`<div class="policy-item">${item.join('')}</div>`);
+        hideStatus();
+        const mdN = buildNational(csvData);
+        const mdL = buildLocal(csvData);
+        pn.textContent = mdN;
+        pl.textContent = mdL;
+        htmlN.innerHTML = mdToHtml(mdN);
+        htmlL.innerHTML = mdToHtml(mdL);
+        showStatus(`✅ 生成完成：国家级 ${csvData.filter(d => d['gj-qydf'] === '国家级').length} 条，区域级 ${csvData.filter(d => d['gj-qydf'] === '区域地方级').length} 条`, 'success');
     }
-    
-    return result.join('');
-}
 
-// 生成全部
-document.getElementById('generateBtn').onclick = () => {
-    if (!csvData.length) return alert('请先上传CSV');
-    const mdN = buildNational(csvData);
-    const mdL = buildLocal(csvData);
-    pn.textContent = mdN;
-    pl.textContent = mdL;
-    htmlN.innerHTML = mdToHtml(mdN);
-    htmlL.innerHTML = mdToHtml(mdL);
-};
+    // ============================
+    // 7. 文件上传
+    // ============================
+    document.getElementById('csvFile').addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        hideStatus();
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            try {
+                const text = ev.target.result;
+                csvData = parseCSV(text);
+                if (csvData.length === 0) {
+                    showStatus('⚠️ 未解析到有效数据，请检查CSV格式是否正确', 'error');
+                } else {
+                    // 自动生成预览
+                    generateAll();
+                }
+            } catch (err) {
+                console.error('解析错误:', err);
+                showStatus('❌ 解析失败：' + err.message, 'error');
+                csvData = [];
+            }
+        };
+        reader.onerror = function () {
+            showStatus('❌ 文件读取失败，请重试', 'error');
+        };
+        reader.readAsText(file, 'UTF-8');
+        // 重置input，允许重复上传同一文件
+        this.value = '';
+    });
 
-// 上传
-document.getElementById('csvFile').addEventListener('change', e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => { csvData = parseCSV(ev.target.result); alert(`导入成功：${csvData.length} 条`); };
-    r.readAsText(f, 'UTF-8');
-});
+    // ============================
+    // 8. 下载模板
+    // ============================
+    document.getElementById('downloadTemplate').addEventListener('click', function() {
+        // 定义列头
+        const headers = ['name', 'date', 'gj-qydf', 'prov', 'class1', 'class2', 'keyword', 'desc','link'];
+        // 示例数据（与列头顺序一致）
+        const example = [
+            '示例政策名称',
+            '2026/01/01',
+            '国家级',
+            '',  // prov 留空
+            '1.国家战略体系',
+            '',  // class2 留空
+            '示例关键词',
+            '这是一条示例政策描述，用于演示格式。',
+            'https://example.com/policy'
+        ];
+        // 组合CSV内容：表头 + 示例行
+        let csvContent = headers.join(',') + '\n' + example.join(',');
+        // 添加BOM以便Excel正确识别UTF-8
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = '政策数据模板.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        showStatus('✅ 模板下载成功！', 'success');
+    });
 
-// 复制 & 下载
-const copy = async (text, tip) => {
-  await navigator.clipboard.writeText(text);
-  alert(tip + ' 复制成功！');
-};
+    // ============================
+    // 9. 按钮事件（复制、导出）
+    // ============================
+    async function copyText(text, tip) {
+        try {
+            await navigator.clipboard.writeText(text);
+            showStatus(`✅ ${tip} 复制成功！`, 'success');
+        } catch (err) {
+            // 降级方案
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            showStatus(`✅ ${tip} 复制成功！`, 'success');
+        }
+    }
 
-const save = (t, name) => {
-    const blob = new Blob([t], { type: 'text/markdown' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
-};
+    function saveFile(text, name) {
+        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+        showStatus(`✅ ${name} 下载成功！`, 'success');
+    }
 
-// 复制MD
-document.getElementById('copyNationalMd').onclick = () => copy(pn.textContent, '国家级MD');
-document.getElementById('copyLocalMd').onclick = () => copy(pl.textContent, '区域级MD');
+    document.getElementById('copyNationalMd').onclick = () => {
+        if (!pn.textContent) return showStatus('⚠️ 请先生成内容', 'error');
+        copyText(pn.textContent, '国家级MD');
+    };
+    document.getElementById('copyLocalMd').onclick = () => {
+        if (!pl.textContent) return showStatus('⚠️ 请先生成内容', 'error');
+        copyText(pl.textContent, '区域级MD');
+    };
+    document.getElementById('copyNationalHtml').onclick = () => {
+        if (!htmlN.innerHTML) return showStatus('⚠️ 请先生成内容', 'error');
+        copyText(htmlN.innerHTML, '国家级HTML代码');
+    };
+    document.getElementById('copyLocalHtml').onclick = () => {
+        if (!htmlL.innerHTML) return showStatus('⚠️ 请先生成内容', 'error');
+        copyText(htmlL.innerHTML, '区域级HTML代码');
+    };
+    document.getElementById('downloadNational').onclick = () => {
+        if (!pn.textContent) return showStatus('⚠️ 请先生成内容', 'error');
+        saveFile(pn.textContent, '国家级政策.md');
+    };
+    document.getElementById('downloadLocal').onclick = () => {
+        if (!pl.textContent) return showStatus('⚠️ 请先生成内容', 'error');
+        saveFile(pl.textContent, '区域地方级政策.md');
+    };
 
-// 复制HTML代码
-document.getElementById('copyNationalHtml').onclick = () => copy(htmlN.innerHTML, '国家级HTML代码');
-document.getElementById('copyLocalHtml').onclick = () => copy(htmlL.innerHTML, '区域级HTML代码');
-
-// 导出MD
-document.getElementById('downloadNational').onclick = () => save(pn.textContent, '国家级政策.md');
-document.getElementById('downloadLocal').onclick = () => save(pl.textContent, '区域地方级政策.md');
+    // ============================
+    // 10. 初始提示
+    // ============================
+    showStatus('📂 请点击「上传CSV」按钮选择政策数据文件', 'info');
 </script>
 </body>
 </html>
