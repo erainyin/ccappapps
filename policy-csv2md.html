@@ -445,7 +445,7 @@
     }
 
     // ============================
-    // 4. 生成Markdown
+    // 4. 生成Markdown（改进：空字段不产生空行）
     // ============================
     function buildNational(data) {
         const list = data.filter(d => d['gj-qydf'] === '国家级');
@@ -468,18 +468,23 @@
             Object.keys(c2Map).sort().forEach(c2 => {
                 if (c2 !== '_') res.push(`### ${c2}`);
                 const sorted = sortByDate(c2Map[c2]);
+                // 收集每个政策的文本块，用空行分隔
+                const blocks = [];
                 sorted.forEach(d => {
-                    res.push('');
-                    res.push(`${d.name || '无标题'}`);
-                    res.push(`发布时间：${d.date || '未知'}`);
-                    res.push(`关键词：${d.keyword || '无'}`);
-                    res.push(`${d.desc || ''}`);
-                    if (d.link) res.push(`${d.link}`);
-                    res.push('');
+                    const lines = [];
+                    // 名称必填
+                    lines.push(d.name || '无标题');
+                    // 其他字段有值才添加
+                    if (d.date) lines.push(`发布时间：${d.date}`);
+                    if (d.keyword) lines.push(`关键词：${d.keyword}`);
+                    if (d.desc) lines.push(d.desc);
+                    if (d.link) lines.push(d.link);
+                    blocks.push(lines.join('\n'));
                 });
+                res.push(blocks.join('\n\n'));
             });
         });
-        return res.join('\n');
+        return res.join('\n\n');
     }
 
     function buildLocal(data) {
@@ -511,19 +516,21 @@
                 Object.keys(provMap).sort().forEach(prov => {
                     res.push(`#### ${prov}`);
                     const sorted = sortByDate(provMap[prov]);
+                    const blocks = [];
                     sorted.forEach(d => {
-                        res.push('');
-                        res.push(`${d.name || '无标题'}`);
-                        res.push(`发布时间：${d.date || '未知'}`);
-                        res.push(`关键词：${d.keyword || '无'}`);
-                        res.push(`${d.desc || ''}`);
-                        if (d.link) res.push(`${d.link}`);
-                        res.push('');
+                        const lines = [];
+                        lines.push(d.name || '无标题');
+                        if (d.date) lines.push(`发布时间：${d.date}`);
+                        if (d.keyword) lines.push(`关键词：${d.keyword}`);
+                        if (d.desc) lines.push(d.desc);
+                        if (d.link) lines.push(d.link);
+                        blocks.push(lines.join('\n'));
                     });
+                    res.push(blocks.join('\n\n'));
                 });
             });
         });
-        return res.join('\n');
+        return res.join('\n\n');
     }
 
     // ============================
