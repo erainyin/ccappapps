@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown 新闻预览工具</title>
+  <link rel="stylesheet" href="style-tool.css">
+  <link id="previewTheme" rel="stylesheet" href="style-ccapp.css">
+  <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <div>
+        <h1>Markdown 新闻预览</h1>
+        <p class="subtitle">读取模板结构，实时查看最终 HTML 卡片效果</p>
+      </div>
+    </header>
+
+    <section class="config" aria-label="配置区域">
+      <label class="file-label" for="fileInput">选择 Markdown 文件
+        <input id="fileInput" type="file" accept=".md,.markdown,text/markdown">
+      </label>
+      <label class="file-label word-label" for="wordInput">选择 Word 文件
+        <input id="wordInput" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+      </label>
+      <button id="toggleHtml" class="secondary" type="button">查看 html</button>
+      <button id="copyHtml" class="secondary" type="button">复制 html</button>
+      <span id="fileName" class="file-name">尚未选择文件</span>
+      <span id="status" class="status" role="status">可直接编辑左侧内容，右侧会实时更新</span>
+    </section>
+
+    <section class="workspace" aria-label="内容展示区域">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 id="sourceTitle">Markdown 内容</h2>
+          <span class="panel-note">可编辑</span>
+        </div>
+        <textarea id="markdownInput" spellcheck="false" placeholder="选择 .md 文件后，Markdown 内容会显示在这里"></textarea>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>HTML 页面预览</h2>
+          <span class="panel-note">实时渲染</span>
+        </div>
+        <div id="preview"><div class="empty-tip">选择 Markdown 文件开始预览</div></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const wordInput = document.getElementById('wordInput');
+    const markdownInput = document.getElementById('markdownInput');
+    const preview = document.getElementById('preview');
+    const fileName = document.getElementById('fileName');
+    const status = document.getElementById('status');
+    const previewTheme = document.getElementById('previewTheme');
+    const toggleHtml = document.getElementById('toggleHtml');
+    const copyHtml = document.getElementById('copyHtml');
+    const sourceTitle = document.getElementById('sourceTitle');
+    const converter = new showdown.Converter({ simpleLineBreaks: true, openLinksInNewWindow: true });
+
+    let selectedWordFile = null;
+    let currentMarkdown = '';
+    let currentRenderedHtml = '';
+    let sourceView = 'md';
+
+    function getThemeTypeFromFilename(filename) {
+      const normalizedName = filename.toLowerCase();
+      if (/(^|[^a-z])ccapp([^a-z]|$)/.test(normalizedName)) return 'ccapp';
+      if (/(^|[^a-z])cap([^a-z]|$)/.test(normalizedName)) return 'cap';
+      return null;
+    }
+
+    function applyPreviewTheme(filename) {
+      const themeType = getThemeTypeFromFilename(filename);
+      if (!themeType) return null;
+      previewTheme.href = `style-${themeType}.css`;
+      return themeType;
+    }
+
+    const templateConfigs = {
+      ccapp: {
+        name: 'template-ccapp.md'
+      },
+      cap: {
+        name: 'template-cap.md'
+      }
+    };
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+    }
+
+    function parseKeywords(markdownLine) {
+      const cleanLine = markdownLine.replace(/^###\s*/, '').replace(/^关键词：?\s*/, '').replace(/\*+/g, '').trim();
+      return [...cleanLine.matchAll(/(?:^|[，,、\s])(?:关键词\s*：\s*)?([^，,、\s]+)(?=[，,、\s]|$)/g)]
+        .map(match => match[1].replace(/^#+/, '').trim())
+        .filter(Boolean);
+    }
+
+    function isKeywordLine(text) {
+      return /(?:^|\s)#\S+/.test(text) && !/^https?:\/\//.test(text.trim());
+    }
+
+    function formatKeywordLine(text) {
+      const tags = [...text.matchAll(/#([^\s#，,、]+)/g)].map(match => match[1].trim()).filter(Boolean);
+      return tags.length ? `### 关键词：${tags.map(tag => `**${tag}**`).join('，')}` : '';
+    }
+
+    function normalizeDetailLinks(text) {
+      return text
+        .replace(/详情\s*>>\s*\[(?:https?:\/\/[^\]]+)\]\(<(https?:\/\/[^>]+)>\)/g, '[详情>>]($1)')
+        .replace(/详情\s*>>\s*(?:\n\s*)?(https?:\/\/\S+)/g, '[详情>>]($1)');
+    }
+
+    function normalizeDetailParentheses(text) {
+      return text.replace(/\(\s*(\[详情>>\]\(https?:\/\/[^)\s]+\))\s*\)/g, '（$1）');
+    }
+
+    function normalizeRenderedParentheses(html) {
+      const template = document.createElement('template');
+      template.innerHTML = html;
+      const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      let node;
+      while ((node = walker.nextNode())) textNodes.push(node);
+      textNodes.forEach(textNode => {
+        textNode.nodeValue = textNode.nodeValue.replace(/\(/g, '（').replace(/\)/g, '）');
+      });
+      return template.innerHTML;
+    }
+
+    function normalizeSubscriptHtml(html) {
+      return html.replace(/<sub>([\s\S]*?)<\/sub>/gi, '<span class="sub">$1</span>');
+    }
+
+    function normalizeSuperscriptHtml(html) {
+      const superscriptMap = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+      return html.replace(/<sup>([\s\S]*?)<\/sup>/gi, (match, value) => {
+        const superscript = [...value].map(character => superscriptMap[character] || character).join('');
+        return `${superscript}\u200c`;
+      });
+    }
+
+    function parseGroupTitle(text) {
+      const match = text.match(/^(?:（\s*(.+?)\s*）|\(\s*(.+?)\s*\))$/);
+      return match ? (match[1] || match[2]).trim() : '';
+    }
+
+    function detectTemplateType(document) {
+      const titleText = [...document.body.children]
+        .slice(0, 3)
+        .map(element => element.textContent.replace(/\s+/g, ' ').trim())
+        .join(' ');
+
+      if (/(^|[^A-Z])CCAPP([^A-Z]|$)/i.test(titleText)) return 'ccapp';
+      if (/(^|[^A-Z])CAP([^A-Z]|$)/i.test(titleText)) return 'cap';
+      return null;
+    }
+
+    async function wordToMarkdown(file) {
+      const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+      const document = new DOMParser().parseFromString(result.value, 'text/html');
+      const templateType = detectTemplateType(document);
+      if (!templateType) {
+        throw new Error('Word 标题中未识别到独立的 CCAPP 或 CAP');
+      }
+
+      const output = [];
+      let currentNews = false;
+      const elements = [...document.body.children];
+      const texts = elements.map(element => element.textContent.replace(/\s+/g, ' ').trim());
+      const capTitleIndexes = new Set();
+
+      if (templateType === 'cap') {
+        texts.forEach((text, index) => {
+          if (text && texts[index + 1] && isKeywordLine(texts[index + 1])) {
+            capTitleIndexes.add(index);
+          }
+        });
+      }
+
+      elements.forEach((element, index) => {
+        const text = texts[index];
+        if (!text) return;
+
+        const groupTitle = parseGroupTitle(text);
+        if (groupTitle) {
+          output.push(`# ${groupTitle}`, '');
+          currentNews = false;
+          return;
+        }
+
+        if (/^【/.test(text) || /^新闻\d+/.test(text) || capTitleIndexes.has(index)) {
+          output.push(`## ${text}`, '');
+          currentNews = true;
+          return;
+        }
+
+        if (currentNews && isKeywordLine(text)) {
+          const keywordLine = formatKeywordLine(text);
+          if (keywordLine) output.push(keywordLine, '');
+          return;
+        }
+
+        if (currentNews) {
+          const body = converter.makeMarkdown(element.outerHTML).trim();
+          if (body) output.push(body);
+        }
+      });
+
+      const markdown = output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+      const normalizedMarkdown = normalizeDetailLinks(markdown)
+        .replace(/\n{2,}(?=[^#\n])/g, '\n');
+      return { markdown: normalizedMarkdown + '\n', templateType, templateName: templateConfigs[templateType].name };
+    }
+
+    function renderMarkdown(markdown) {
+      const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
+      const groups = [];
+      let group = null;
+      let news = null;
+      const isCapTheme = previewTheme.getAttribute('href') === 'style-cap.css';
+
+      function saveNews() {
+        if (group && news) group.items.push(news);
+        news = null;
+      }
+
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (/^#\s+/.test(trimmed)) {
+          saveNews();
+          group = { title: trimmed.replace(/^#\s+/, '').trim(), items: [] };
+          groups.push(group);
+        } else if (/^##\s+/.test(trimmed)) {
+          saveNews();
+          if (group) news = { title: trimmed.replace(/^##\s+/, '').trim(), keyword: [], body: [] };
+        } else if (/^###\s+/.test(trimmed) && news) {
+          news.keyword = parseKeywords(trimmed);
+        } else if (news) {
+          news.body.push(line);
+        }
+      });
+      saveNews();
+
+      if (!groups.length) {
+        return '<div class="empty-tip">未识别到一级标题分组，请使用 template.md 的 Markdown 结构</div>';
+      }
+
+      const renderGroupContent = currentGroup => {
+        const newsCards = currentGroup.items.length ? currentGroup.items.map((currentNews, newsIndex) => `
+            <article class="news-card">
+              <p class="news-title">${escapeHtml(currentNews.title)}</p>
+              <div class="news-keyword"><span class="keyword-label">关键词：</span>${currentNews.keyword.map(keyword => `<span class="keyword-tag">${escapeHtml(keyword)}</span>`).join('')}</div>
+              <div class="news-desc">${normalizeSuperscriptHtml(normalizeSubscriptHtml(converter.makeHtml(normalizeDetailParentheses(currentNews.body.join('\n').trim())))) || '<p>暂无描述</p>'}</div>
+            </article>
+            ${isCapTheme && newsIndex === currentGroup.items.length - 1 ? '<div class="cap-divider" aria-hidden="true"><span class="cap-divider-line"></span><span class="cap-divider-ring"></span><span class="cap-divider-dot"></span><span class="cap-divider-line"></span></div>' : ''}
+          `).join('') : '<div class="empty-tip">该分组下未识别到新闻条目</div>';
+        const newsContent = isCapTheme ? newsCards : `<div class="news-cards">${newsCards}</div>`;
+
+        return `
+          <div class="group-title-wrap"><div class="group-title">${isCapTheme || previewTheme.getAttribute('href') === 'style-ccapp.css' ? '# ' : ''}${escapeHtml(currentGroup.title)}</div></div>
+          ${newsContent}
+        `;
+      };
+
+      if (isCapTheme) {
+        const headlineGroup = groups.find(currentGroup => currentGroup.title === '本周头条');
+        const otherGroups = groups.filter(currentGroup => currentGroup.title !== '本周头条');
+        const capIntroHtml = `
+          <section class="cap-intro" aria-label="CAP 关注引导">
+            插入CAP头部组件
+          </section>`;
+        const headlineHtml = headlineGroup
+          ? `${capIntroHtml}<section class="group-headline">${renderGroupContent(headlineGroup)}</section>`
+          : capIntroHtml;
+        const otherGroupsHtml = otherGroups.length
+          ? `<section class="group-block">${otherGroups.map(renderGroupContent).join('')}</section>`
+          : '';
+        const capFooterHtml = `
+          <section class="cap-footer">
+            插入CAP底部组件
+          </section>`;
+        return headlineHtml + otherGroupsHtml + capFooterHtml;
+      }
+
+      const ccappIntroHtml = `
+        <section class="ccapp-intro" aria-label="CCAPP 页头组件">
+          插入 CCAPP 页头组件
+        </section>`;
+      const ccappGroupsHtml = groups.map(currentGroup => `<section class="group-block">${renderGroupContent(currentGroup)}</section>`).join('');
+      const ccappFooterHtml = `
+        <section class="ccapp-footer" aria-label="CCAPP 页脚组件">
+          插入 CCAPP 页脚组件
+        </section>`;
+      return ccappIntroHtml + ccappGroupsHtml + ccappFooterHtml;
+    }
+
+    function updatePreview() {
+      currentMarkdown = markdownInput.value;
+      currentRenderedHtml = normalizeRenderedParentheses(renderMarkdown(currentMarkdown));
+      preview.innerHTML = currentRenderedHtml;
+      if (sourceView === 'html') {
+        markdownInput.value = currentRenderedHtml;
+      }
+      status.textContent = currentMarkdown.trim() ? '预览已更新' : '可直接编辑左侧内容，右侧会实时更新';
+    }
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      currentMarkdown = await file.text();
+      sourceView = 'md';
+      markdownInput.value = currentMarkdown;
+      updateSourceView();
+      fileName.textContent = file.name;
+      updatePreview();
+      status.textContent = `已载入 ${file.name}`;
+    });
+
+    wordInput.addEventListener('change', () => {
+      selectedWordFile = wordInput.files[0] || null;
+      if (!selectedWordFile) return;
+      fileName.textContent = selectedWordFile.name;
+      const themeType = applyPreviewTheme(selectedWordFile.name);
+      const themeMessage = themeType ? `，已加载 ${themeType.toUpperCase()} 主题` : '';
+      status.textContent = `Word 文件已选择${themeMessage}，正在转换...`;
+      convertSelectedWord();
+    });
+
+    async function convertSelectedWord() {
+      if (!selectedWordFile) return;
+      status.textContent = '正在将 Word 转换为 Markdown...';
+      try {
+        const result = await wordToMarkdown(selectedWordFile);
+        currentMarkdown = result.markdown;
+        sourceView = 'md';
+        markdownInput.value = currentMarkdown;
+        updateSourceView();
+        updatePreview();
+        status.textContent = `已转换 ${selectedWordFile.name}，使用 ${result.templateName}`;
+      } catch (error) {
+        status.textContent = `Word 转换失败：${error.message}`;
+      }
+    }
+
+    function updateSourceView() {
+      const isHtmlView = sourceView === 'html';
+      sourceTitle.textContent = isHtmlView ? 'Html 内容' : 'Markdown 内容';
+      toggleHtml.textContent = isHtmlView ? '查看 md' : '查看 html';
+      markdownInput.readOnly = isHtmlView;
+      markdownInput.value = isHtmlView ? inlinePreviewStyles() : currentMarkdown;
+    }
+
+    function inlinePreviewStyles() {
+      const clone = preview.cloneNode(true);
+      const root = clone;
+      const resolveVariables = value => value.replace(/var\((--[\w-]+)(?:,\s*([^)]*))?\)/g, (match, name, fallback) => {
+        const variableValue = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return variableValue || fallback || match;
+      });
+
+      function applyRules(rules) {
+        [...rules].forEach(rule => {
+          if (rule.type === CSSRule.STYLE_RULE) {
+            let matchedElements = [];
+            try {
+              matchedElements = root.querySelectorAll(rule.selectorText);
+            } catch (error) {
+              return;
+            }
+            matchedElements.forEach(element => {
+              [...rule.style].forEach(property => {
+                const value = resolveVariables(rule.style.getPropertyValue(property).trim());
+                element.style.setProperty(property, value, rule.style.getPropertyPriority(property));
+              });
+            });
+          } else if (rule.cssRules) {
+            applyRules(rule.cssRules);
+          }
+        });
+      }
+
+      [...document.styleSheets].forEach(sheet => {
+        try {
+          applyRules(sheet.cssRules);
+        } catch (error) {
+          // 跨域样式表无法读取时跳过，不影响本地主题样式复制。
+        }
+      });
+
+      // 即使元素没有匹配到 CSS 规则，也保留 style 属性，保证输出结构统一为内嵌样式 HTML。
+      root.querySelectorAll('*').forEach(element => {
+        if (!element.hasAttribute('style')) element.setAttribute('style', '');
+      });
+      return root.innerHTML;
+    }
+
+    toggleHtml.addEventListener('click', () => {
+      sourceView = sourceView === 'html' ? 'md' : 'html';
+      updateSourceView();
+    });
+
+    copyHtml.addEventListener('click', async () => {
+      if (!currentRenderedHtml) return;
+      await navigator.clipboard.writeText(inlinePreviewStyles());
+      status.textContent = '内嵌样式 HTML 已复制';
+    });
+
+    markdownInput.addEventListener('input', updatePreview);
+  </script>
+</body>
+</html>

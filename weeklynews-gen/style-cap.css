@@ -1,0 +1,206 @@
+:root {
+  --cap-green: rgb(66, 175, 111);
+  --cap-muted: rgb(140, 140, 140);
+  --cap-text: #111;
+  --cap-link: #2563eb;
+  font-family: PingFang SC NEW, system-ui, -apple-system, BlinkMacSystemFont, Helvetica Neue, Hiragino Sans GB, Microsoft YaHei UI, Microsoft YaHei, Arial, sans-serif;
+}
+
+/* CAP 顶部关注引导和品牌图片 */
+.cap-intro {
+  background:#eee;
+  text-align: center;
+  line-height: 2;
+  margin-bottom: 20px;
+}
+
+
+/* CAP 文章结尾版权、关注和宣传信息 */
+.cap-footer {
+  background:#eee;
+  text-align: center;
+  line-height: 2;
+  margin-top: 20px;
+}
+
+/* 新闻分组外层容器 */
+.group-block {
+  margin-bottom: 0;
+  border: 1px solid rgb(66, 175, 111);
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 20px 20px 0 20px;
+}
+
+.group-headline {
+  margin-bottom: 24px;
+  border: 1px solid rgb(66, 175, 111);
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 20px 20px 0 20px;
+}
+
+.news-card {
+  margin-bottom: 30px;
+
+}
+
+/* 分组标题的居中容器 */
+.group-title-wrap {
+  margin: 10px 0 20px;
+  text-align: left;
+}
+
+/* 分组标题及底部浅绿色装饰 */
+
+.group-title {
+  display: inline-block;
+  width: auto;
+  vertical-align: middle;
+  align-self: center;
+  flex: 0 0 auto;
+  min-width: 5%;
+  max-width: 100%;
+  height: auto;
+  background-color: rgb(66, 175, 111);
+  padding: 5px 10px;
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 0px 5px 0px 0px;
+  box-sizing: border-box;
+  color: #fff;
+}
+
+/* 单条新闻内容区域 */
+
+
+/* 新闻标题 */
+.news-title {
+  margin: 0 0 15px 0;
+  padding: 0;
+  color: rgb(66, 175, 111);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  line-height: 25.6px;
+  text-align: justify;
+}
+
+/* 关键词区域 */
+.news-keyword {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: -5px 0 10px;
+  text-align: left;
+}
+
+/* 关键词区域标签文字 */
+.keyword-label {
+  color: rgb(140, 140, 140);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: justify;
+}
+
+/* 单个关键词圆角标签 */
+.keyword-tag {
+  display: inline-block;
+  min-width: 5%;
+  max-width: 100%;
+  margin: 0 5px 0 0;
+  padding: 5px 10px;
+  overflow: hidden;
+  color: rgb(66, 175, 111);
+  border: 1px solid rgb(66, 175, 111);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 14px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* 新闻正文 */
+.news-desc {
+  margin: 0 0 15px;
+  padding: 0;
+  color: #000;
+  font-size: 16px;
+  line-height: 25.6px;
+  letter-spacing: 1px;
+  text-align: justify;
+  text-indent: 36px;
+  white-space: normal;
+}
+
+/* 正文段落保持连续的段落间距 */
+.news-desc p {
+  margin: 0;
+  padding: 0;
+}
+
+/* 正文中的详情链接 */
+.news-desc a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* 下标文本 */
+.sub {
+  font-size: 10px;
+}
+
+/* 每个分类末尾的绿色分割线和双圆装饰 */
+.cap-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 20px 0;
+  box-sizing: border-box;
+}
+
+.cap-divider-line {
+  flex: 100 100 0%;
+  height: 1px;
+  background: rgba(69, 176, 80, .5);
+}
+
+.cap-divider-ring,
+.cap-divider-dot {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 26px;
+  box-sizing: border-box;
+}
+
+.cap-divider-ring {
+  margin-left: 10px;
+  border: 1px solid rgb(66, 175, 111);
+  background: transparent;
+}
+
+.cap-divider-dot {
+  margin-left: -8px;
+  background: rgba(69, 176, 80, .14);
+}
+
+.cap-divider-line:last-child {
+  margin-left: 10px;
+}
+
+/* 两个外层容器的最后一个分割线隐藏，分类之间的分割线保留 */
+.group-headline>.cap-divider:last-child,
+.group-block>.cap-divider:last-child {
+  display: none;
+}
+
+/* 没有内容时的提示 */
+.empty-tip {
+  padding: 24px;
+  color: #86909c;
+  text-align: center;
+  font-size: 14px;
+}

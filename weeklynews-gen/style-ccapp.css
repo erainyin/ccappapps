@@ -1,0 +1,125 @@
+/* 新闻分组外层容器 */
+.ccapp-intro,
+.ccapp-footer {
+    background: #eee;
+    text-align: center;
+    line-height: 2;
+    margin-bottom: 20px;
+}
+
+.ccapp-footer {
+    margin: 20px 0 0;
+}
+
+/* 新闻分组外层容器 */
+.group-block {
+    margin-bottom: 24px;
+    border: 1px solid #55ba7f;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(197, 227, 211, .26);
+}
+
+/* 分组标题的居中布局 */
+.group-title-wrap {
+    margin: 30px 0 20px;
+    text-align: center;
+}
+
+/* 分组标题文字与底部装饰 */
+.group-title {
+    display: inline-block;
+    padding: 0 5px;
+    border-bottom: 15px solid rgba(125, 202, 161, .26);
+    color: #000;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+
+/* 单条新闻卡片 */
+.news-cards {
+    margin: 0 10px 10px;
+    padding: 10px 10px 0 10px;
+    border: 1px solid #55ba7f;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.news-card {
+    margin-bottom: 20px;
+}
+
+/* 新闻标题 */
+.news-title {
+    margin: 0 0 10px;
+    color: #55ba7f;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    line-height: 1.5;
+}
+
+/* 关键词区域的横向排列 */
+.news-keyword {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: -5px 0 10px;
+}
+
+/* 关键词标签前的“关键词”文字 */
+.keyword-label {
+    color: #8c8c8c;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1;
+}
+
+/* 单个关键词标签 */
+.keyword-tag {
+    padding: 4px 9px;
+    color: #42af6f;
+    border: 1px solid #42af6f;
+    border-radius: 20px;
+    background: #fff;
+    font-size: 14px;
+    line-height: 1; 
+}
+
+/* 新闻正文，包括首行缩进和两端对齐 */
+.news-desc {
+    margin-bottom: 4px;
+    color: #000;
+    font-size: 16px;
+    line-height: 25.6px;
+    letter-spacing: 1px;
+    text-align: justify;
+    text-indent: 36px;
+}
+
+/* 正文中的段落间距 */
+.news-desc p {
+    margin: 0 0 8px;
+}
+
+/* 正文中的详情链接 */
+.news-desc a {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+/* 下标文本 */
+.sub {
+    font-size: 10px;
+}
+
+/* 没有内容时的提示文字 */
+.empty-tip {
+    padding: 26px;
+    color: #86909c;
+    text-align: center;
+    font-size: 14px;
+}
