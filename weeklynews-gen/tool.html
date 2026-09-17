@@ -150,6 +150,10 @@
       return match ? (match[1] || match[2]).trim() : '';
     }
 
+    function formatCapNewsTitle(title) {
+      return title.replace(/^【([^】]+)】\s*/, '$1 | ');
+    }
+
     function detectTemplateType(document) {
       const titleText = [...document.body.children]
         .slice(0, 3)
@@ -254,7 +258,7 @@
       const renderGroupContent = currentGroup => {
         const newsCards = currentGroup.items.length ? currentGroup.items.map((currentNews, newsIndex) => `
             <article class="news-card">
-              <p class="news-title">${escapeHtml(currentNews.title)}</p>
+              <p class="news-title">${escapeHtml(isCapTheme ? formatCapNewsTitle(currentNews.title) : currentNews.title)}</p>
               <div class="news-keyword"><span class="keyword-label">关键词：</span>${currentNews.keyword.map(keyword => `<span class="keyword-tag">${escapeHtml(keyword)}</span>`).join('')}</div>
               <div class="news-desc">${normalizeSuperscriptHtml(normalizeSubscriptHtml(converter.makeHtml(normalizeDetailParentheses(currentNews.body.join('\n').trim())))) || '<p>暂无描述</p>'}</div>
             </article>
