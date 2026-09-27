@@ -133,22 +133,6 @@
       return template.innerHTML;
     }
 
-    function minifyWhitespace(html) {
-      const template = document.createElement('template');
-      template.innerHTML = html;
-      const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
-      const textNodes = [];
-      let node;
-      while ((node = walker.nextNode())) textNodes.push(node);
-      textNodes.forEach(textNode => {
-        if (!/\n/.test(textNode.nodeValue)) return;
-        const compact = textNode.nodeValue.replace(/\s+/g, ' ').trim();
-        if (compact) textNode.nodeValue = compact;
-        else textNode.parentNode.removeChild(textNode);
-      });
-      return template.innerHTML;
-    }
-
     function normalizeSubscriptHtml(html) {
       return html.replace(/<sub>([\s\S]*?)<\/sub>/gi, '<span class="sub">$1</span>');
     }
@@ -322,7 +306,7 @@
 
     function updatePreview() {
       currentMarkdown = markdownInput.value;
-      currentRenderedHtml = minifyWhitespace(normalizeRenderedParentheses(renderMarkdown(currentMarkdown)));
+      currentRenderedHtml = normalizeRenderedParentheses(renderMarkdown(currentMarkdown));
       preview.innerHTML = currentRenderedHtml;
       if (sourceView === 'html') {
         markdownInput.value = currentRenderedHtml;
@@ -417,7 +401,7 @@
       root.querySelectorAll('*').forEach(element => {
         if (!element.hasAttribute('style')) element.setAttribute('style', '');
       });
-      return minifyWhitespace(root.innerHTML);
+      return root.innerHTML;
     }
 
     toggleHtml.addEventListener('click', () => {
