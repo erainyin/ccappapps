@@ -6,8 +6,9 @@
   <title>Markdown 新闻预览工具</title>
   <link rel="stylesheet" href="style-tool.css">
   <link id="previewTheme" rel="stylesheet" href="style-ccapp.css">
-  <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <style id="liveThemeStyle"></style>
+  <script src="showdown.min.js"></script>
+  <script src="mammoth.browser.min.js"></script>
 </head>
 <body>
   <main class="page">
@@ -25,9 +26,21 @@
       <label class="file-label word-label" for="wordInput">选择 Word 文件
         <input id="wordInput" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
       </label>
+      <label class="file-label template-label" for="templateInput">选择 HTML 模板
+        <input id="templateInput" type="file" accept=".html,.htm,text/html">
+      </label>
+      <label class="image-label" for="logoImage">Logo 图片地址
+        <input id="logoImage" type="text" spellcheck="false" placeholder="公网 https 图片地址，留空=模板默认图">
+      </label>
+      <label class="image-label" for="footerImage">页脚图片地址
+        <input id="footerImage" type="text" spellcheck="false" placeholder="公网 https 图片地址，留空=模板默认图">
+      </label>
+      <button id="reloadTemplate" class="secondary" type="button">重载模板</button>
       <button id="toggleHtml" class="secondary" type="button">查看 html</button>
       <button id="copyHtml" class="secondary" type="button">复制 html</button>
+      <button id="resetCss" class="secondary" type="button">重置 CSS</button>
       <span id="fileName" class="file-name">尚未选择文件</span>
+      <span id="templateName" class="file-name">模板：内置结构</span>
       <span id="status" class="status" role="status">可直接编辑左侧内容，右侧会实时更新</span>
     </section>
 
@@ -46,19 +59,34 @@
         </div>
         <div id="preview"><div class="empty-tip">选择 Markdown 文件开始预览</div></div>
       </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>CSS 样式</h2>
+          <span class="panel-note">可编辑·实时生效</span>
+        </div>
+        <textarea id="cssInput" spellcheck="false" placeholder="当前主题的 CSS 会显示在这里，修改后预览实时更新"></textarea>
+      </section>
     </section>
   </main>
 
   <script>
     const fileInput = document.getElementById('fileInput');
     const wordInput = document.getElementById('wordInput');
+    const templateInput = document.getElementById('templateInput');
+    const reloadTemplate = document.getElementById('reloadTemplate');
     const markdownInput = document.getElementById('markdownInput');
     const preview = document.getElementById('preview');
     const fileName = document.getElementById('fileName');
     const status = document.getElementById('status');
     const previewTheme = document.getElementById('previewTheme');
+    const liveThemeStyle = document.getElementById('liveThemeStyle');
+    const cssInput = document.getElementById('cssInput');
     const toggleHtml = document.getElementById('toggleHtml');
     const copyHtml = document.getElementById('copyHtml');
+    const resetCss = document.getElementById('resetCss');
+    const templateName = document.getElementById('templateName');
+    const logoImage = document.getElementById('logoImage');
+    const footerImage = document.getElementById('footerImage');
     const sourceTitle = document.getElementById('sourceTitle');
     const converter = new showdown.Converter({ simpleLineBreaks: true, openLinksInNewWindow: true });
 
@@ -66,6 +94,52 @@
     let currentMarkdown = '';
     let currentRenderedHtml = '';
     let sourceView = 'md';
+    let currentTheme = 'ccapp';
+    let originalThemeCss = ''; // 记录当前主题原始 CSS，供「重置 CSS」使用
+    let themeTemplateDocument = null; // 当前主题生效的 HTML 模板文档
+    let selectedTemplateFile = null;
+    let themeLoadToken = 0; // 主题切换序号，防止并发加载相互覆盖
+
+    function templateFileFor(themeType) {
+      return `template-${themeType}.html`;
+    }
+
+    // 模板图片占位常量与「图片地址」配置的映射
+    const IMAGE_SOURCES_KEY = 'weeklynews.imageSources';
+    const imageSourceMap = { IMG_LOGO: '', IMG_FOOTER: '' };
+
+    function loadImageSources() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(IMAGE_SOURCES_KEY) || '{}');
+        Object.keys(imageSourceMap).forEach(key => {
+          if (typeof saved[key] === 'string') imageSourceMap[key] = saved[key];
+        });
+      } catch (error) {
+        // localStorage 不可用时忽略
+      }
+      logoImage.value = imageSourceMap.IMG_LOGO;
+      footerImage.value = imageSourceMap.IMG_FOOTER;
+      refreshImageValidation();
+    }
+
+    function saveImageSources() {
+      try {
+        localStorage.setItem(IMAGE_SOURCES_KEY, JSON.stringify(imageSourceMap));
+      } catch (error) {
+        // 忽略存储失败
+      }
+    }
+
+    // 把模板中的 {{IMG_LOGO}} 等占位常量替换为配置地址，未配置时回退到 data-default-src
+    function resolveImageSources(root) {
+      root.querySelectorAll('img[src^="{{"]').forEach(image => {
+        const key = image.getAttribute('src').replace(/[{}]/g, '').trim();
+        const value = imageSourceMap[key] || image.getAttribute('data-default-src') || '';
+        if (value) image.setAttribute('src', value);
+        else image.removeAttribute('src');
+        image.removeAttribute('data-default-src');
+      });
+    }
 
     function getThemeTypeFromFilename(filename) {
       const normalizedName = filename.toLowerCase();
@@ -74,11 +148,113 @@
       return null;
     }
 
-    function applyPreviewTheme(filename) {
-      const themeType = getThemeTypeFromFilename(filename);
-      if (!themeType) return null;
-      previewTheme.href = `style-${themeType}.css`;
-      return themeType;
+    function themeCssFile(themeType) {
+      return `style-${themeType}.css`;
+    }
+
+    // 从 <link> 样式表读取 CSS 文本（兼容 file:// 直接打开，fetch 不可用时的兜底）
+    function readCssFromLink(link) {
+      return new Promise(resolve => {
+        const tryRead = () => {
+          try {
+            const sheet = link.sheet;
+            if (sheet && sheet.cssRules) {
+              resolve([...sheet.cssRules].map(rule => rule.cssText).join('\n'));
+              return true;
+            }
+          } catch (error) {
+            // 跨域或未加载完成时继续等待
+          }
+          return false;
+        };
+        if (tryRead()) return;
+        link.addEventListener('load', () => tryRead(), { once: true });
+        link.addEventListener('error', () => resolve(''), { once: true });
+        setTimeout(() => resolve(''), 4000);
+      });
+    }
+
+    // 加载指定主题 CSS：写入右侧 CSS 列 + 注入 liveThemeStyle（实时生效）
+    // href 追加时间戳，避免浏览器复用缓存的旧样式表导致切换主题后样式错乱
+    async function loadThemeCss(themeType, token) {
+      currentTheme = themeType;
+      const cssFile = themeCssFile(themeType);
+      const versionedUrl = `${cssFile}?v=${Date.now()}`;
+      previewTheme.href = versionedUrl;
+      let cssText = '';
+      try {
+        const res = await fetch(versionedUrl, { cache: 'no-store' });
+        if (res.ok) cssText = await res.text();
+      } catch (error) {
+        // fetch 在 file:// 下可能被拦截，改用 <link> 样式表兜底
+      }
+      if (!cssText) cssText = await readCssFromLink(previewTheme);
+      if (token && token !== themeLoadToken) return ''; // 已有更新的主题加载请求，丢弃本次结果
+      originalThemeCss = cssText;
+      cssInput.value = cssText;
+      applyLiveCss(cssText);
+      return cssText;
+    }
+
+    function applyLiveCss(cssText) {
+      liveThemeStyle.textContent = cssText || '';
+    }
+
+    // 切换主题：同时加载对应样式文件和 HTML 模板文件
+    async function activateTheme(themeType) {
+      const token = ++themeLoadToken;
+      themeTemplateDocument = null;
+      selectedTemplateFile = null;
+      const cssText = await loadThemeCss(themeType, token);
+      if (token !== themeLoadToken) return;
+      await loadDefaultThemeTemplate();
+      if (!cssText) {
+        status.textContent = '未能读取主题样式文件，请通过本地服务器打开（python3 -m http.server）后重试';
+      }
+    }
+
+    async function applyThemeTemplate(html, name) {
+      const document = new DOMParser().parseFromString(html, 'text/html');
+      const requiredBlocks = ['page', 'headline', 'category', 'news', 'keyword', 'divider'];
+      const missing = requiredBlocks.filter(block => !document.querySelector(`template[data-template="${block}"]`));
+      if (missing.length) {
+        throw new Error(`缺少模板块：${missing.join('、')}`);
+      }
+
+      themeTemplateDocument = document;
+      templateName.textContent = `模板：${name}`;
+      if (currentMarkdown.trim()) updatePreview();
+      return document;
+    }
+
+    async function loadDefaultThemeTemplate() {
+      const file = templateFileFor(currentTheme);
+      try {
+        const response = await fetch(file, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        await applyThemeTemplate(await response.text(), file);
+        return true;
+      } catch (error) {
+        themeTemplateDocument = null;
+        templateName.textContent = '模板：内置结构';
+        return false;
+      }
+    }
+
+    async function reloadThemeTemplate() {
+      status.textContent = '正在读取 HTML 模板...';
+      try {
+        if (selectedTemplateFile) {
+          await applyThemeTemplate(await selectedTemplateFile.text(), selectedTemplateFile.name);
+          status.textContent = `模板 ${selectedTemplateFile.name} 已重新载入，预览已更新`;
+        } else {
+          const loaded = await loadDefaultThemeTemplate();
+          if (!loaded) throw new Error('浏览器未允许自动读取本地文件，请点击「选择 HTML 模板」');
+          status.textContent = `已重新载入 ${templateFileFor(currentTheme)}，预览已更新`;
+        }
+      } catch (error) {
+        status.textContent = `模板加载失败：${error.message}`;
+      }
     }
 
     const templateConfigs = {
@@ -243,7 +419,7 @@
       const groups = [];
       let group = null;
       let news = null;
-      const isCapTheme = previewTheme.getAttribute('href') === 'style-cap.css';
+      const isCapTheme = currentTheme === 'cap';
 
       function saveNews() {
         if (group && news) group.items.push(news);
@@ -271,68 +447,204 @@
         return '<div class="empty-tip">未识别到一级标题分组，请使用 template.md 的 Markdown 结构</div>';
       }
 
-      const renderGroupContent = currentGroup => {
-        const newsCards = currentGroup.items.length ? currentGroup.items.map((currentNews, newsIndex) => `
-            <article class="news-card">
-              <p class="news-title">${escapeHtml(isCapTheme ? formatCapNewsTitle(currentNews.title) : currentNews.title)}</p>
-              <div class="news-keyword"><span class="keyword-label">关键词：</span>${currentNews.keyword.map(keyword => `<span class="keyword-tag">${escapeHtml(keyword)}</span>`).join('')}</div>
-              <div class="news-desc">${normalizeSuperscriptHtml(normalizeSubscriptHtml(converter.makeHtml(normalizeDetailParentheses(currentNews.body.join('\n').trim())))) || '<p>暂无描述</p>'}</div>
-            </article>
-            ${isCapTheme && newsIndex === currentGroup.items.length - 1 ? '<div class="cap-divider" aria-hidden="true"><span class="cap-divider-line"></span><span class="cap-divider-ring"></span><span class="cap-divider-dot"></span><span class="cap-divider-line"></span></div>' : ''}
-          `).join('') : '<div class="empty-tip">该分组下未识别到新闻条目</div>';
-        const newsContent = isCapTheme ? newsCards : `<div class="news-cards">${newsCards}</div>`;
+      // 「本周头条」→ 头条块；其余一级标题 → 普通分类
+      const headlineGroup = groups.find(currentGroup => currentGroup.title === '本周头条');
+      const otherGroups = groups.filter(currentGroup => currentGroup.title !== '本周头条');
+      const hasHeadline = Boolean(headlineGroup && headlineGroup.items.length);
 
-        return `
-          <div class="group-title-wrap"><div class="group-title">${isCapTheme || previewTheme.getAttribute('href') === 'style-ccapp.css' ? '# ' : ''}${escapeHtml(currentGroup.title)}</div></div>
-          ${newsContent}
-        `;
-      };
+      if (themeTemplateDocument) {
+        if (!hasHeadline && !otherGroups.length) {
+          return '<section class="empty-tip">未识别到新闻内容，请检查 Markdown 结构</section>';
+        }
 
-      if (isCapTheme) {
-        const headlineGroup = groups.find(currentGroup => currentGroup.title === '本周头条');
-        const otherGroups = groups.filter(currentGroup => currentGroup.title !== '本周头条');
-        const capIntroHtml = `
-          <section class="cap-intro" aria-label="CAP 关注引导">
-            插入CAP头部组件
-          </section>`;
-        const headlineHtml = headlineGroup
-          ? `${capIntroHtml}<section class="group-headline">${renderGroupContent(headlineGroup)}</section>`
-          : capIntroHtml;
-        const otherGroupsHtml = otherGroups.length
-          ? `<section class="group-block">${otherGroups.map(renderGroupContent).join('')}</section>`
-          : '';
-        const capFooterHtml = `
-          <section class="cap-footer">
-            插入CAP底部组件
-          </section>`;
-        return headlineHtml + otherGroupsHtml + capFooterHtml;
+        const getBlock = name => themeTemplateDocument.querySelector(`template[data-template="${name}"]`).content.cloneNode(true);
+        const setField = (root, name, value) => {
+          const field = root.querySelector(`[data-field="${name}"]`);
+          if (field) field.textContent = value;
+        };
+        const replaceSlot = (root, name, nodes) => {
+          const slot = root.querySelector(`[data-slot="${name}"]`);
+          if (slot) slot.replaceWith(...nodes);
+        };
+        const renderTemplateNews = currentNews => {
+          const fragment = getBlock('news');
+          setField(fragment, 'news-title', isCapTheme ? formatCapNewsTitle(currentNews.title) : currentNews.title);
+
+          const keywordLine = fragment.querySelector('[data-slot="keywords"]');
+          if (keywordLine && currentNews.keyword.length) {
+            keywordLine.textContent = '关键词：';
+            currentNews.keyword.forEach(keyword => {
+              const keywordFragment = getBlock('keyword');
+              if (keywordFragment.firstElementChild) keywordFragment.firstElementChild.textContent = keyword;
+              keywordLine.append(keywordFragment);
+            });
+          } else if (keywordLine) {
+            keywordLine.remove();
+          }
+
+          const body = fragment.querySelector('[data-html="body"]');
+          if (body) {
+            body.innerHTML = normalizeSuperscriptHtml(normalizeSubscriptHtml(converter.makeHtml(normalizeDetailParentheses(currentNews.body.join('\n').trim())))) || '<p>暂无描述</p>';
+          }
+          return fragment;
+        };
+
+        const page = getBlock('page');
+
+        // 页头 / 页脚：模板中存在同名模板块时填充插槽，否则移除空插槽
+        const fillStaticSlot = slotName => {
+          const slot = page.querySelector(`[data-slot="${slotName}"]`);
+          if (!slot) return;
+          const hasBlock = Boolean(themeTemplateDocument.querySelector(`template[data-template="${slotName}"]`));
+          if (hasBlock) slot.replaceWith(getBlock(slotName));
+          else slot.remove();
+        };
+        fillStaticSlot('header');
+
+        const headlineSlot = page.querySelector('[data-slot="headline"]');
+        if (headlineSlot && hasHeadline) {
+          const headline = getBlock('headline');
+          setField(headline, 'headline-title', `# ${headlineGroup.title}`);
+          replaceSlot(headline, 'news', headlineGroup.items.map(renderTemplateNews));
+          headlineSlot.replaceWith(headline);
+        } else if (headlineSlot) {
+          headlineSlot.remove();
+        }
+
+        const categoriesSlot = page.querySelector('[data-slot="categories"]');
+        if (otherGroups.length) {
+          const categoryNodes = [];
+          otherGroups.forEach((currentGroup, groupIndex) => {
+            if (groupIndex > 0) categoryNodes.push(getBlock('divider'));
+            const category = getBlock('category');
+            setField(category, 'category-title', `# ${currentGroup.title}`);
+            if (currentGroup.items.length) {
+              replaceSlot(category, 'news', currentGroup.items.map(renderTemplateNews));
+            } else {
+              const emptyTip = themeTemplateDocument.createElement('section');
+              emptyTip.className = 'empty-tip';
+              emptyTip.textContent = '该分组下未识别到新闻条目';
+              replaceSlot(category, 'news', [emptyTip]);
+            }
+            categoryNodes.push(category);
+          });
+          if (categoriesSlot) categoriesSlot.replaceWith(...categoryNodes);
+        } else {
+          const categoriesRegion = page.querySelector('[data-region="categories"]');
+          if (categoriesRegion) categoriesRegion.remove();
+          else if (categoriesSlot) categoriesSlot.remove();
+        }
+
+        fillStaticSlot('footer');
+
+        resolveImageSources(page);
+
+        // 注释只用于模板说明，不进入公众号输出
+        const commentWalker = document.createTreeWalker(page, NodeFilter.SHOW_COMMENT);
+        const comments = [];
+        let commentNode;
+        while ((commentNode = commentWalker.nextNode())) comments.push(commentNode);
+        comments.forEach(node => node.remove());
+
+        // data-* 标记只用于模板填充，不进入公众号输出。
+        page.querySelectorAll('[data-slot], [data-field], [data-html], [data-region]').forEach(element => {
+          element.removeAttribute('data-slot');
+          element.removeAttribute('data-field');
+          element.removeAttribute('data-html');
+          element.removeAttribute('data-region');
+        });
+        const output = document.createElement('template');
+        output.content.append(page);
+        return output.innerHTML;
       }
 
-      const ccappIntroHtml = `
-        <section class="ccapp-intro" aria-label="CCAPP 页头组件">
-          插入 CCAPP 页头组件
-        </section>`;
-      const ccappGroupsHtml = groups.map(currentGroup => `<section class="group-block">${renderGroupContent(currentGroup)}</section>`).join('');
-      const ccappFooterHtml = `
-        <section class="ccapp-footer" aria-label="CCAPP 页脚组件">
-          插入 CCAPP 页脚组件
-        </section>`;
-      return ccappIntroHtml + ccappGroupsHtml + ccappFooterHtml;
+      // 未读取到 HTML 模板时使用内置结构，保证直接打开工具也能预览。
+      const renderCcappNews = (currentNews, titleClass) => {
+        const titleHtml = `<h2 class="${titleClass || ''}">${escapeHtml(isCapTheme ? formatCapNewsTitle(currentNews.title) : currentNews.title)}</h2>`;
+        const keywordHtml = currentNews.keyword.length
+          ? `<h3 class="news-keyword">关键词：${currentNews.keyword.map(keyword => `<strong class="kw-tag">${escapeHtml(keyword)}</strong>`).join('')}</h3>`
+          : '';
+        const bodyHtml = normalizeSuperscriptHtml(normalizeSubscriptHtml(converter.makeHtml(normalizeDetailParentheses(currentNews.body.join('\n').trim())))) || '<p>暂无描述</p>';
+        return `${titleHtml}${keywordHtml}<section class="news-body">${bodyHtml}</section>`;
+      };
+
+      const dividerHtml = '<section class="divider" aria-hidden="true"><span class="divider-line">&nbsp;</span><span class="divider-ring">&nbsp;</span><span class="divider-dot">&nbsp;</span><span class="divider-line">&nbsp;</span></section>';
+      const toutiaoHtml = hasHeadline
+        ? `<section id="toutiao"><section id="toutiao-header"># ${escapeHtml(headlineGroup.title)}</section><section id="toutiao-content">${headlineGroup.items.map(currentNews => renderCcappNews(currentNews, '')).join('')}</section></section>`
+        : '';
+      const quanguoHtml = otherGroups.length
+        ? `<section id="quanguo">${otherGroups.map((currentGroup, groupIndex) => {
+            const newsHtml = currentGroup.items.length
+              ? currentGroup.items.map(currentNews => renderCcappNews(currentNews, 'content-title')).join('')
+              : '<section class="empty-tip">该分组下未识别到新闻条目</section>';
+            return `${groupIndex > 0 ? dividerHtml : ''}<h1 class="category"># ${escapeHtml(currentGroup.title)}</h1>${newsHtml}`;
+          }).join('')}</section>`
+        : '';
+
+      if (!toutiaoHtml && !quanguoHtml) {
+        return '<section class="empty-tip">未识别到新闻内容，请检查 Markdown 结构</section>';
+      }
+      return `<section class="wx-root">${toutiaoHtml}${quanguoHtml}</section>`;
     }
 
     function updatePreview() {
-      currentMarkdown = markdownInput.value;
+      if (sourceView === 'md') currentMarkdown = markdownInput.value;
       currentRenderedHtml = minifyWhitespace(normalizeRenderedParentheses(renderMarkdown(currentMarkdown)));
       preview.innerHTML = currentRenderedHtml;
       if (sourceView === 'html') {
-        markdownInput.value = currentRenderedHtml;
+        markdownInput.value = inlinePreviewStyles();
       }
       status.textContent = currentMarkdown.trim() ? '预览已更新' : '可直接编辑左侧内容，右侧会实时更新';
     }
 
+    templateInput.addEventListener('change', async () => {
+      const file = templateInput.files[0];
+      if (!file) return;
+      selectedTemplateFile = file;
+      status.textContent = '正在读取 HTML 模板...';
+      try {
+        await applyThemeTemplate(await file.text(), file.name);
+        status.textContent = `已载入模板 ${file.name}（当前主题：${currentTheme.toUpperCase()}），预览已更新`;
+      } catch (error) {
+        status.textContent = `模板加载失败：${error.message}`;
+      }
+    });
+
+    reloadTemplate.addEventListener('click', reloadThemeTemplate);
+
+    // 公众号粘贴时由微信服务端抓取图片，只认公网 http(s) 地址；本地路径会「图片载入失败」
+    const IMAGE_URL_PATTERN = /^https?:\/\/\S+$/i;
+
+    function refreshImageValidation() {
+      let hasInvalid = false;
+      [logoImage, footerImage].forEach(input => {
+        const value = input.value.trim();
+        const invalid = Boolean(value) && !IMAGE_URL_PATTERN.test(value);
+        input.parentElement.classList.toggle('is-invalid', invalid);
+        if (invalid) hasInvalid = true;
+      });
+      return hasInvalid;
+    }
+
+    // 「图片地址」配置：修改即保存并重新渲染，模板中的占位常量随之替换
+    const syncImageSources = () => {
+      imageSourceMap.IMG_LOGO = logoImage.value.trim();
+      imageSourceMap.IMG_FOOTER = footerImage.value.trim();
+      saveImageSources();
+      if (currentMarkdown.trim()) updatePreview();
+      if (refreshImageValidation()) {
+        status.textContent = '图片地址需为公网 https 链接，本地路径粘贴到公众号会显示「图片载入失败」';
+      }
+    };
+    logoImage.addEventListener('input', syncImageSources);
+    footerImage.addEventListener('input', syncImageSources);
+
     fileInput.addEventListener('change', async () => {
       const file = fileInput.files[0];
       if (!file) return;
+      // 选择 .md 时同样按文件名切换主题，避免 CAP 内容套用 CCAPP 的样式和模板
+      const themeType = getThemeTypeFromFilename(file.name);
+      if (themeType && themeType !== currentTheme) await activateTheme(themeType);
       currentMarkdown = await file.text();
       sourceView = 'md';
       markdownInput.value = currentMarkdown;
@@ -342,11 +654,12 @@
       status.textContent = `已载入 ${file.name}`;
     });
 
-    wordInput.addEventListener('change', () => {
+    wordInput.addEventListener('change', async () => {
       selectedWordFile = wordInput.files[0] || null;
       if (!selectedWordFile) return;
       fileName.textContent = selectedWordFile.name;
-      const themeType = applyPreviewTheme(selectedWordFile.name);
+      const themeType = getThemeTypeFromFilename(selectedWordFile.name);
+      if (themeType) await activateTheme(themeType);
       const themeMessage = themeType ? `，已加载 ${themeType.toUpperCase()} 主题` : '';
       status.textContent = `Word 文件已选择${themeMessage}，正在转换...`;
       convertSelectedWord();
@@ -405,11 +718,16 @@
         });
       }
 
-      [...document.styleSheets].forEach(sheet => {
+      // 只内联主题样式：previewTheme 作底，liveThemeStyle 覆盖其上（用户在 CSS 列的实时修改优先）。
+      // 不遍历 document.styleSheets 全体，避免把工具自身的 style-tool.css 规则混入公众号输出。
+      const themeSheets = [];
+      try { if (previewTheme.sheet) themeSheets.push(previewTheme.sheet); } catch (error) { /* 未加载 */ }
+      try { if (liveThemeStyle.sheet) themeSheets.push(liveThemeStyle.sheet); } catch (error) { /* 未加载 */ }
+      themeSheets.forEach(sheet => {
         try {
           applyRules(sheet.cssRules);
         } catch (error) {
-          // 跨域样式表无法读取时跳过，不影响本地主题样式复制。
+          // 跨域样式表无法读取时跳过。
         }
       });
 
@@ -420,6 +738,46 @@
       return minifyWhitespace(root.innerHTML);
     }
 
+    // 把内联样式 HTML 作为富文本（text/html）写入剪贴板，公众号编辑器才会渲染样式。
+    // 优先用现代 Clipboard API（需安全上下文 + 用户手势）；file:// 等场景回退到选区 + execCommand。
+    function copyBySelection(html) {
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      container.setAttribute('style', 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;');
+      document.body.appendChild(container);
+      const range = document.createRange();
+      range.selectNodeContents(container);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (error) {
+        ok = false;
+      }
+      selection.removeAllRanges();
+      document.body.removeChild(container);
+      return ok;
+    }
+
+    async function copyRichHtml(html) {
+      try {
+        if (navigator.clipboard && window.ClipboardItem && window.isSecureContext) {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'text/html': new Blob([html], { type: 'text/html' }),
+              'text/plain': new Blob([html], { type: 'text/plain' })
+            })
+          ]);
+          return true;
+        }
+      } catch (error) {
+        // 回退到 execCommand
+      }
+      return copyBySelection(html);
+    }
+
     toggleHtml.addEventListener('click', () => {
       sourceView = sourceView === 'html' ? 'md' : 'html';
       updateSourceView();
@@ -427,11 +785,46 @@
 
     copyHtml.addEventListener('click', async () => {
       if (!currentRenderedHtml) return;
-      await navigator.clipboard.writeText(inlinePreviewStyles());
-      status.textContent = '内嵌样式 HTML 已复制';
+      const html = inlinePreviewStyles();
+      const ok = await copyRichHtml(html);
+      const hasUnreachableImage = /<img[^>]+src="(?!https?:)/i.test(html);
+      if (!ok) {
+        status.textContent = '复制失败，请选中预览内容手动复制';
+      } else if (hasUnreachableImage) {
+        status.textContent = '已复制，但存在非公网图片地址，粘贴后会显示「图片载入失败」；请先上传图片再填写 https 地址';
+      } else {
+        status.textContent = '富文本已复制（含内联样式），可直接粘贴到公众号';
+      }
     });
 
     markdownInput.addEventListener('input', updatePreview);
+
+    // 右侧 CSS 列：编辑即注入 liveThemeStyle，预览实时生效；并刷新「查看 html」快照
+    let cssInputTimer = null;
+    cssInput.addEventListener('input', () => {
+      applyLiveCss(cssInput.value);
+      clearTimeout(cssInputTimer);
+      cssInputTimer = setTimeout(() => {
+        if (sourceView === 'html') updateSourceView();
+        status.textContent = 'CSS 已更新，预览实时生效';
+      }, 250);
+    });
+
+    // 重置为当前主题的原始 CSS
+    resetCss.addEventListener('click', () => {
+      cssInput.value = originalThemeCss;
+      applyLiveCss(originalThemeCss);
+      if (sourceView === 'html') updateSourceView();
+      status.textContent = 'CSS 已重置为当前主题原始样式';
+    });
+
+    // 初始化：载入图片地址配置、CCAPP 样式和可编辑 HTML 模板
+    loadImageSources();
+    activateTheme('ccapp').then(() => {
+      status.textContent = themeTemplateDocument
+        ? `已读取 ${templateFileFor('ccapp')}，修改后点击「重载模板」即可更新`
+        : '可直接编辑内容；如需应用 HTML 模板，请点击「选择 HTML 模板」';
+    });
   </script>
 </body>
 </html>

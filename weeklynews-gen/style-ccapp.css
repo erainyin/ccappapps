@@ -1,125 +1,198 @@
-/* 新闻分组外层容器 */
-.ccapp-intro,
-.ccapp-footer {
-    background: #eee;
-    text-align: center;
-    line-height: 2;
-    margin-bottom: 20px;
+/* =========================================================
+   CCAPP 周报样式 —— 提取自 template.html
+   所有样式均为内联友好：复制到公众号前会被 tool.html 内联到 style 属性。
+   在此文件修改后刷新页面即可；也可在工具右侧「CSS 样式」列实时微调。
+   ========================================================= */
+
+/* 根容器：宽度撑满父容器（不再写死 375px） */
+.wx-root {
+    width: 100%;
+    margin: 0 auto;
 }
 
-.ccapp-footer {
-    margin: 20px 0 0;
-}
-
-/* 新闻分组外层容器 */
-.group-block {
-    margin-bottom: 24px;
-    border: 1px solid #55ba7f;
+/* ---------- 本周头条块 #toutiao ---------- */
+#toutiao {
+    border: 1px solid rgb(85, 186, 127);
     border-radius: 10px;
     overflow: hidden;
-    background: rgba(197, 227, 211, .26);
+    background-color: rgba(197, 227, 211, 0.26);
+    padding: 20px 10px 10px;
+    height: auto;
+    margin: 0 10px 20px;
 }
 
-/* 分组标题的居中布局 */
-.group-title-wrap {
-    margin: 30px 0 20px;
-    text-align: center;
-}
-
-/* 分组标题文字与底部装饰 */
-.group-title {
+/* 头条顶部标签 */
+#toutiao-header {
     display: inline-block;
-    padding: 0 5px;
-    border-bottom: 15px solid rgba(125, 202, 161, .26);
-    color: #000;
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: 1px;
+    background-color: rgb(66, 175, 111);
+    color: #fff;
+    padding: 8px 10px 5px;
+    margin: 0 5px 0 10px;
+    line-height: 1;
+    border-radius: 10px 10px 0 0;
 }
 
-
-/* 单条新闻卡片 */
-.news-cards {
-    margin: 0 10px 10px;
-    padding: 10px 10px 0 10px;
-    border: 1px solid #55ba7f;
+/* 头条内容白底卡片 */
+#toutiao-content {
+    background-color: #ffffff;
+    padding: 15px;
+    border: 1px solid rgb(66, 175, 111);
     border-radius: 10px;
-    background: #fff;
 }
 
-.news-card {
-    margin-bottom: 20px;
-}
-
-/* 新闻标题 */
-.news-title {
-    margin: 0 0 10px;
-    color: #55ba7f;
+/* 头条标题：必须显式声明 font-weight，否则复制到公众号后丢失加粗 */
+#toutiao-content h2 {
+    color: rgb(66, 175, 111);
+    padding: 0;
+    text-align: justify;
     font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    line-height: 1.5;
+    font-weight: bold;
+    letter-spacing: 3px;
+    line-height: 1.6;
 }
 
-/* 关键词区域的横向排列 */
-.news-keyword {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin: -5px 0 10px;
+/* ---------- 分类容器 #quanguo ---------- */
+#quanguo {
+    box-sizing: border-box;
+    background-color: #ffffff;
+    border: 1px solid rgba(69, 176, 80, 0.3);
+    padding: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    height: auto;
+    margin: 0 10px;
 }
 
-/* 关键词标签前的“关键词”文字 */
-.keyword-label {
-    color: #8c8c8c;
-    font-size: 14px;
-    font-weight: 400;
+/* 分类标题胶囊（# 全国 / # 内容分类2 …） */
+.category {
+    display: inline-block;
+    font-size: 16px;
+    background-color: rgb(66, 175, 111);
+    padding: 5px 10px;
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 0 0 -10px 0;
+    color: #fff;
+    font-weight: normal;
     line-height: 1;
 }
 
-/* 单个关键词标签 */
-.keyword-tag {
-    padding: 4px 9px;
-    color: #42af6f;
-    border: 1px solid #42af6f;
-    border-radius: 20px;
-    background: #fff;
-    font-size: 14px;
-    line-height: 1; 
-}
-
-/* 新闻正文，包括首行缩进和两端对齐 */
-.news-desc {
-    margin-bottom: 4px;
-    color: #000;
-    font-size: 16px;
-    line-height: 25.6px;
-    letter-spacing: 1px;
+/* 新闻标题：必须显式声明 font-weight，否则复制到公众号后丢失加粗 */
+.content-title {
+    color: rgb(66, 175, 111);
+    padding: 0;
     text-align: justify;
-    text-indent: 36px;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    line-height: 1.6;
+    margin: 30px 0 0 0;
 }
 
-/* 正文中的段落间距 */
-.news-desc p {
-    margin: 0 0 8px;
+/* ---------- 关键词行（h3 + strong 标签） ---------- */
+.news-keyword {
+    font-size: 14px;
+    color: #666;
+    margin: 10px 0 5px 0;
 }
 
-/* 正文中的详情链接 */
-.news-desc a {
+.news-keyword .kw-tag {
+    color: rgb(66, 175, 111);
+    border-radius: 20px;
+    border: 1px solid rgb(66, 175, 111);
+    font-weight: normal;
+    line-height: 1em;
+    padding: 5px 10px;
+    margin: 0 5px 5px 0;
+    display: inline-block;
+}
+
+/* ---------- 正文 ---------- */
+.news-body {
+    padding: 0;
+    margin: 0;
+}
+
+.news-body p {
+    padding: 0;
+    margin: 0;
+    text-indent: 2.125em;
+    line-height: 1.6;
+    text-align: justify;
+    letter-spacing: 1;
+}
+
+/* 正文强调（**加粗**） */
+.news-body strong {
+    font-weight: bold;
+}
+
+/* 正文链接（详情>>） */
+.news-body a {
     color: #2563eb;
-    text-decoration: underline;
+    text-decoration: none;
 }
 
-/* 下标文本 */
+/* ---------- 分类间分割线 ----------
+   公众号不支持 flex，改用 inline-block + vertical-align 居中对齐。
+   各装饰元素内需保留 &nbsp;，否则空元素会被编辑器当作无内容节点移除。 */
+.divider {
+    text-align: center;
+    font-size: 0;
+    line-height: 0;
+    margin: 30px 0;
+}
+
+.divider-line {
+    display: inline-block;
+    width: 40%;
+    height: 1px;
+    background-color: rgba(69, 176, 80, 0.5);
+    vertical-align: middle;
+    overflow: hidden;
+}
+
+.divider-ring,
+.divider-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    vertical-align: middle;
+    overflow: hidden;
+}
+
+.divider-ring {
+    margin-left: 10px;
+    border: 1px solid rgb(66, 175, 111);
+    background-color: transparent;
+}
+
+.divider-dot {
+    margin-left: -8px;
+    background-color: rgba(69, 176, 80, 0.14);
+}
+
+.divider-line:last-child {
+    margin-left: 10px;
+}
+
+/* 下标 */
 .sub {
     font-size: 10px;
 }
 
-/* 没有内容时的提示文字 */
+/* 空提示 */
 .empty-tip {
     padding: 26px;
     color: #86909c;
     text-align: center;
     font-size: 14px;
+}
+
+/* 头条块内第一条新闻标题：紧贴头条卡片内边距，不留顶部间距
+   放在文件末尾，保证内联样式时覆盖 .content-title 的 margin-top */
+#toutiao-content .content-title:first-child {
+    margin-top: 0;
 }

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>CAP 周报 HTML 排版模板</title>
+</head>
+<body>
+  <!--
+    编辑说明：
+    1. 直接修改各 template 内的 HTML 结构；样式仍在 style-ccapp.css 中维护。
+    2. data-template 是模板块名称，请勿删除或改名。
+    3. data-slot 是重复内容插槽，data-field 是文字字段，data-html 是正文 HTML 插槽。
+    4. 容器建议使用 section，避免粘贴到公众号时被拆包。
+    5. 在 tool.html 点击「重载模板」，或点击「选择 HTML 模板」选择本文件，即可应用修改。
+    6. 图片可写成占位常量 {{IMG_LOGO}} / {{IMG_FOOTER}}，由工具上的「图片地址」配置项统一替换；
+       data-default-src 是未填写配置时使用的本地默认图，粘贴公众号前请改成 https 地址。
+  -->
+
+  <!-- 整页骨架：可调整头条和分类容器的先后顺序、增加页头页脚 -->
+  <template data-template="page">
+    <section class="wx-root">
+      <section data-slot="header"></section>
+      <section data-slot="headline"></section>
+      <section id="quanguo" data-region="categories">
+        <section data-slot="categories"></section>
+      </section>
+      <section data-slot="footer"></section>
+    </section>
+  </template>
+
+  <!-- 页头公众号logo 引导关注的文字 -->
+  <template data-template="header">
+    <section id="followus" class="cap-followus">
+      <p class="cap-follow-text">点击<span style="color: rgb(7, 128, 199);">蓝字</span>关注我们</p>
+      <section class="cap-follow-line">&nbsp;</section>
+    </section>
+    <section id="logo" class="cap-logo-wrap"><img src="https://mmbiz.qpic.cn/sz_mmbiz_png/b4wel4pCNlWnibfxTUwVLfic52VHyNMmedtgia1M7Sk51Twypk9NXeSqhhicqTfnQdu0x6DbLjK1uNZMLojM4p2KkvoKwW4auDKMEPGAROabtME/640?from=appmsg#imgIndex=0" alt="CAP logo" class="cap-logo"></section>
+    <!-- 如需顶部横幅：把图片放到 assets/ 后取消下一行注释，并改成实际文件名 -->
+    <!-- <section id="banner"><img src="{{IMG_BANNER}}" data-default-src="assets/weekly-banner.png" alt="CAP banner" class="cap-logo"></section> -->
+  </template>
+
+  <!-- 本周头条：对应 Markdown 中名为「本周头条」的一级标题 -->
+  <template data-template="headline">
+    <section id="toutiao">
+      <section id="toutiao-header" data-field="headline-title"># 本周头条</section>
+      <section id="toutiao-content">
+        <section data-slot="news"></section>
+      </section>
+    </section>
+  </template>
+
+  <!-- 每个普通分类重复使用一次 -->
+  <template data-template="category">
+    <h1 class="category" data-field="category-title"># 全国</h1>
+    <section data-slot="news"></section>
+  </template>
+
+  <!-- 每条新闻重复使用一次，头条与普通分类共用 -->
+  <template data-template="news">
+    <h2 class="content-title" data-field="news-title">新闻标题</h2>
+    <h3 class="news-keyword" data-slot="keywords">关键词：</h3>
+    <section class="news-body" data-html="body"></section>
+  </template>
+
+  <!-- 每个关键词重复使用一次 -->
+  <template data-template="keyword">
+    <strong class="kw-tag">关键词</strong>
+  </template>
+
+  <!-- 分类之间插入的分割线：装饰元素必须保留 &nbsp;，空的 span 会被公众号编辑器丢弃 -->
+  <template data-template="divider">
+    <section class="divider" aria-hidden="true">
+      <span class="divider-line">&nbsp;</span>
+      <span class="divider-ring">&nbsp;</span>
+      <span class="divider-dot">&nbsp;</span>
+      <span class="divider-line">&nbsp;</span>
+    </section>
+  </template>
+
+  <!-- 页脚公众号名片-->
+  <template data-template="footer">
+    <section class="cap-footer">
+      <p class="cap-authorinfo">注 | 以上内容受版权保护，转载请注明出处<br>文稿：颜楚荞；排版：张帅</p>
+      <img src="{{IMG_FOOTER}}" data-default-src="cap-footer.png" alt="CAP 公众号名片" class="cap-footer-img">
+    </section>
+  </template>
+
+</body>
+</html>

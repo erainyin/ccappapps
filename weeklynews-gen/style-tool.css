@@ -86,9 +86,40 @@ button.secondary:hover { background: var(--mint); }
 button:disabled { cursor: not-allowed; opacity: .5; }
 .file-name { color: var(--muted); font-size: 13px; }
 
+.image-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #badbc4;
+  border-radius: 7px;
+  background: #f7fbf8;
+  color: var(--green-dark);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.image-label input[type="text"] {
+  width: 210px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: 0;
+  background: #fff;
+  color: #264034;
+  font: 12px/1.4 Consolas, Monaco, monospace;
+}
+
+.image-label input[type="text"]:focus { border-color: #6cbf8b; }
+
+.image-label.is-invalid { border-color: #e08b8b; background: #fff6f6; color: #c14b4b; }
+.image-label.is-invalid input[type="text"] { border-color: #e08b8b; }
+
 .workspace {
   display: grid;
-  grid-template-columns: minmax(300px, .88fr) minmax(420px, 1.12fr);
+  grid-template-columns: minmax(280px, .85fr) minmax(400px, 1.1fr) minmax(280px, .85fr);
   gap: 18px;
   padding: 18px;
   background: rgba(255, 255, 255, .56);
@@ -102,7 +133,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .panel-head h2 { margin: 0; font-size: 16px; }
 .panel-note { color: var(--muted); font-size: 12px; }
 
-#markdownInput {
+#markdownInput,
+#cssInput {
   display: block;
   width: 100%;
   min-height: 700px;
@@ -115,6 +147,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   font: 14px/1.75 Consolas, Monaco, monospace;
 }
 
+#cssInput {
+  background: #f7fbf8;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
 #preview {
   min-height: 700px;
   padding: 18px;
@@ -123,9 +162,15 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .status { width: 100%; color: var(--muted); font-size: 13px; }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
+  .workspace { grid-template-columns: 1fr 1fr; }
+  .panel:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 760px) {
   .page { width: min(100% - 24px, 720px); padding-top: 20px; }
   .masthead { display: block; }
   .workspace { grid-template-columns: 1fr; padding: 10px; }
-  #markdownInput, #preview { min-height: 480px; }
+  .panel:last-child { grid-column: auto; }
+  #markdownInput, #cssInput, #preview { min-height: 480px; }
 }
